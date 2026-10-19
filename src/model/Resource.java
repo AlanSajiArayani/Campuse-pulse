@@ -11,4 +11,20 @@ public class Resource
         this.id=id;
         this.availability=availability;
     }
+    public String getName()
+    {
+        return name;
+    }
+    public int getId()
+    {
+        return id;
+    }
+    public boolean isAvailable()
+    {
+        return availability;
+    }
+    public void setAvailability(boolean availability)
+    {
+        this.availability = availability;
+    }
 }
