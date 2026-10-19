@@ -98,8 +98,9 @@ public class Resource {
      * @return {@code true} if return succeeded, {@code false} otherwise
      */
     public boolean returnResource(String returnerId) {
-        // TODO [Ardra K Gireesh] – Implement
-        return false;
+         quantity = quantity + 1;
+        status = AppConstants.RESOURCE_STATUS_AVAILABLE;
+        return true;
     }
 
     // -------------------------------------------------------------------------
