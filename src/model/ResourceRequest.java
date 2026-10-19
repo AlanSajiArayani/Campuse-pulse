@@ -35,7 +35,8 @@ public class ResourceRequest extends Request
         return handoverCodeHash;
     }
     public void setHandoverCodeHash(String handoverCodeHash)
-    { this.handoverCodeHash = handoverCodeHash; 
-        
+    { 
+        this.handoverCodeHash = handoverCodeHash; 
     }
+    
 }
