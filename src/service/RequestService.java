@@ -92,4 +92,46 @@ public class RequestService
         req.setStatus(ResourceRequest.STATUS_ACCEPTED);
         return true;
     }
+        public boolean decline(String requestId, String ownerId)
+    {
+        ResourceRequest req = findRequest(requestId);
+        if (req == null)
+        {
+            return false;
+        }
+        Resource r = resourceService.findById(req.getResourceId());
+        if (r == null)
+        {
+            return false;
+        }
+        if (!r.getOwnerId().equals(ownerId))
+        {
+            return false;
+        }
+        if (!ResourceRequest.STATUS_PENDING.equals(req.getStatus()))
+        {
+            return false;
+        }
+        req.setStatus(ResourceRequest.STATUS_DECLINED);
+        return true;
+    }
+        public boolean cancel(String requestId, String requesterId)
+    {
+        ResourceRequest req = findRequest(requestId);
+        if (req == null)
+        {
+            return false;
+        }
+        if (!req.getRequesterId().equals(requesterId))
+        {
+            return false;
+        }
+        if (!ResourceRequest.STATUS_PENDING.equals(req.getStatus())
+            && !ResourceRequest.STATUS_ACCEPTED.equals(req.getStatus()))
+        {
+            return false;
+        }
+        req.setStatus(ResourceRequest.STATUS_CANCELLED);
+        return true;
+    }
 }
