@@ -53,4 +53,35 @@ public class ResourceService
         }
         return null;
     }
+    public boolean removeResource(String resourceId, String userId)
+    {
+        Resource r = findById(resourceId);
+        if (r == null)
+        {
+            return false;
+        }
+        if (!r.getOwnerId().equals(userId))
+        {
+            return false;
+        }
+        resources.remove(r);
+        return true;
+    }
+        public boolean editResource(String resourceId, String userId,
+                                String newName, String newDescription, String newCategory)
+    {
+        Resource r = findById(resourceId);
+        if (r == null)
+        {
+            return false;
+        }
+        if (!r.getOwnerId().equals(userId))
+        {
+            return false;
+        }
+        r.setResourceName(newName);
+        r.setDescription(newDescription);
+        r.setCategory(newCategory);
+        return true;
+    }
 }
