@@ -14,7 +14,7 @@ public class ResourceService
         List<Resource> found= new ArrayList<>();
         for(Resource r :resources)
         {
-            if (r.getName().toLowerCase().contains(keyword.toLowerCase())) {
+            if (r.getResourceName().toLowerCase().contains(keyword.toLowerCase())) {
                 found.add(r);   
             }
         }
