@@ -7,7 +7,7 @@ import model.Student;
 import model.User;
 import model.Volunteer;
 import view.MainView;
-
+import service.ResourceService;
 import java.util.List;
 
 /**
@@ -88,8 +88,9 @@ public class MainController {
      *
      * @param resource the {@link Resource} object to add
      */
+    private ResourceService resourceService = new ResourceService();
     public void addResource(Resource resource) {
-        // TODO [Ardra K Gireesh] – Implement
+        resourceService.addResource(resource);
     }
 
     /**
@@ -100,8 +101,7 @@ public class MainController {
      * @return a list of matching {@link Resource} objects (empty if none)
      */
     public List<Resource> searchResources(String keyword) {
-        // TODO [Ardra K Gireesh] – Implement
-        return null;
+        return resourceService.searchResources(keyword);
     }
 
     /**
@@ -112,9 +112,13 @@ public class MainController {
      * @param borrowerId the userId of the requester
      * @return {@code true} if the borrow was successful
      */
+  
     public boolean borrowResource(String resourceId, String borrowerId) {
-        // TODO [Ardra K Gireesh] – Implement
-        return false;
+        Resource r = resourceService.findById(resourceId);
+        if (r == null) {
+            return false;
+        }
+        return r.borrowResource(borrowerId);
     }
 
     /**
@@ -126,8 +130,11 @@ public class MainController {
      * @return {@code true} if the return was successful
      */
     public boolean returnResource(String resourceId, String returnerId) {
-        // TODO [Ardra K Gireesh] – Implement
-        return false;
+        Resource r = resourceService.findById(resourceId);
+        if (r == null) {
+            return false;
+        }
+        return r.returnResource(returnerId);
     }
 
     // =========================================================================

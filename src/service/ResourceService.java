@@ -42,4 +42,15 @@ public class ResourceService
         }
         return found;
     }
+    public Resource findById(String resourceId)
+    {
+        for (Resource r : resources)
+        {
+            if (r.getResourceId().equals(resourceId))
+            {
+                return r;
+            }
+        }
+        return null;
+    }
 }
