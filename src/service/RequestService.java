@@ -12,6 +12,12 @@ public class RequestService
     private ResourceService resourceService;
     private List<ResourceRequest> requests = new ArrayList<>();
     private int counter = 0;
+    private StatusTracker tracker = new StatusTracker();
+
+    public StatusTracker getTracker()
+    {
+        return tracker;
+    }
 
     public RequestService(ResourceService resourceService)
     {
@@ -89,10 +95,10 @@ public class RequestService
         {
             return false;
         }
-        req.setStatus(ResourceRequest.STATUS_ACCEPTED);
-        return true;
+        return tracker.updateStatus(req, ResourceRequest.STATUS_ACCEPTED);
+    
     }
-        public boolean decline(String requestId, String ownerId)
+    public boolean decline(String requestId, String ownerId)
     {
         ResourceRequest req = findRequest(requestId);
         if (req == null)
@@ -112,10 +118,9 @@ public class RequestService
         {
             return false;
         }
-        req.setStatus(ResourceRequest.STATUS_DECLINED);
-        return true;
+        return tracker.updateStatus(req, ResourceRequest.STATUS_DECLINED);
     }
-        public boolean cancel(String requestId, String requesterId)
+    public boolean cancel(String requestId, String requesterId)
     {
         ResourceRequest req = findRequest(requestId);
         if (req == null)
@@ -131,7 +136,6 @@ public class RequestService
         {
             return false;
         }
-        req.setStatus(ResourceRequest.STATUS_CANCELLED);
-        return true;
+        return tracker.updateStatus(req, ResourceRequest.STATUS_CANCELLED);
     }
 }

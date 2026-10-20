@@ -76,8 +76,7 @@ public class HandoverService implements Verifiable
             return false;
         }
         req.setHandoverCodeHash(null);
-        req.setStatus(ResourceRequest.STATUS_COMPLETED);
-        return true;
+        return requestService.getTracker().updateStatus(req, ResourceRequest.STATUS_COMPLETED);
     }
 
     private String makeRandomCode()
