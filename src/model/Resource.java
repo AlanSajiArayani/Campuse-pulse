@@ -1,4 +1,5 @@
 package model;
+import util.AppConstants;
 
 /**
  * Resource.java
@@ -77,8 +78,15 @@ public class Resource {
      * @param borrowerId userId of the person borrowing this resource
      * @return {@code true} if borrowing succeeded, {@code false} otherwise
      */
-    public boolean borrowResource(String borrowerId) {
-        // TODO [Ardra K Gireesh] – Implement
+    public boolean borrowResource(String borrowerId) 
+    {
+         if (quantity > 0 && AppConstants.RESOURCE_STATUS_AVAILABLE.equals(status)) {
+            quantity = quantity - 1;
+            if (quantity == 0) {
+                status = AppConstants.RESOURCE_STATUS_BORROWED;
+            }
+            return true;
+        }
         return false;
     }
 
@@ -90,8 +98,9 @@ public class Resource {
      * @return {@code true} if return succeeded, {@code false} otherwise
      */
     public boolean returnResource(String returnerId) {
-        // TODO [Ardra K Gireesh] – Implement
-        return false;
+         quantity = quantity + 1;
+        status = AppConstants.RESOURCE_STATUS_AVAILABLE;
+        return true;
     }
 
     // -------------------------------------------------------------------------
