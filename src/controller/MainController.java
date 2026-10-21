@@ -9,7 +9,8 @@ import model.Volunteer;
 import view.MainView;
 import service.ResourceService;
 import java.util.List;
-
+import java.util.ArrayList;
+import util.AppConstants;
 /**
  * MainController.java
  * Central controller that wires views, models and future data services.
@@ -142,56 +143,108 @@ public class MainController {
     // Owner: Ashish K Biju
     // =========================================================================
 
-    /**
-     * Creates a new service or emergency request.
-     * TODO [Ashish K Biju] – Implement; persist request, trigger matching if emergency
-     *
-     * @param requestType  the type of request (use AppConstants.REQUEST_TYPE_*)
-     * @param requesterId  the userId raising the request
-     * @param description  human-readable description of the need
-     * @return the created {@link Request} object, or {@code null} on failure
-     */
+        // Section 3 data (in-memory for now; Alan's repository replaces this later)
+    private List<Request>   requests       = new ArrayList<>();
+    private List<Volunteer> volunteers     = new ArrayList<>();
+    private int             requestCounter = 1;
+
     public Request createRequest(String requestType, String requesterId, String description) {
-        // TODO [Ashish K Biju] – Implement
-        return null;
+        if (requestType == null || requesterId == null
+                || description == null || description.trim().isEmpty()) {
+            return null;   // invalid input
+        }
+        String id  = String.format("REQ-%03d", requestCounter++);
+        String now = java.time.LocalDateTime.now().withNano(0).toString();
+        Request request = new Request(id, requestType, requesterId, description,
+                                      AppConstants.REQUEST_STATUS_OPEN, null, now);
+        requests.add(request);
+
+        if (AppConstants.REQUEST_TYPE_EMERGENCY.equals(requestType)) {
+            Volunteer match = matchVolunteer(request);
+            if (match != null) {
+                assignVolunteer(id, match.getVolunteerId());
+            }
+        }
+        return request;
     }
 
-    /**
-     * Assigns an available volunteer to an open request.
-     * TODO [Ashish K Biju] – Implement; update Request and Volunteer records
-     *
-     * @param requestId   the ID of the request to fulfil
-     * @param volunteerId the ID of the volunteer to assign
-     * @return {@code true} if assignment succeeded
-     */
     public boolean assignVolunteer(String requestId, String volunteerId) {
-        // TODO [Ashish K Biju] – Implement
-        return false;
+        Request   request   = findRequest(requestId);
+        Volunteer volunteer = findVolunteer(volunteerId);
+        if (request == null || volunteer == null) return false;
+        if (!AppConstants.REQUEST_STATUS_OPEN.equals(request.getStatus())) return false;
+        if (!AppConstants.VOLUNTEER_AVAILABLE.equals(volunteer.getAvailabilityStatus())) return false;
+
+        request.assignVolunteer(volunteerId);
+        request.updateRequestStatus(AppConstants.REQUEST_STATUS_ASSIGNED);
+        volunteer.setAvailabilityStatus(AppConstants.VOLUNTEER_BUSY);
+        volunteer.addAssignedRequest(requestId);
+        return true;
     }
 
-    /**
-     * Updates the status of an existing request.
-     * TODO [Ashish K Biju] – Implement; validate transitions, notify parties
-     *
-     * @param requestId the ID of the request to update
-     * @param newStatus the new status (use AppConstants.REQUEST_STATUS_*)
-     */
     public void updateRequestStatus(String requestId, String newStatus) {
-        // TODO [Ashish K Biju] – Implement
+        Request request = findRequest(requestId);
+        if (request == null || newStatus == null) return;
+
+        String current = request.getStatus();
+        boolean allowed =
+              (AppConstants.REQUEST_STATUS_OPEN.equals(current) &&
+                  (AppConstants.REQUEST_STATUS_ASSIGNED.equals(newStatus)
+                   || AppConstants.REQUEST_STATUS_CANCELLED.equals(newStatus)))
+           || (AppConstants.REQUEST_STATUS_ASSIGNED.equals(current) &&
+                  (AppConstants.REQUEST_STATUS_RESOLVED.equals(newStatus)
+                   || AppConstants.REQUEST_STATUS_CANCELLED.equals(newStatus)));
+        if (!allowed) return;   // invalid transition, ignore
+
+        request.updateRequestStatus(newStatus);
+
+        // Free the volunteer when the work is finished or cancelled
+        if (AppConstants.REQUEST_STATUS_RESOLVED.equals(newStatus)
+                || AppConstants.REQUEST_STATUS_CANCELLED.equals(newStatus)) {
+            Volunteer v = findVolunteer(request.getAssignedVolunteerId());
+            if (v != null) {
+                v.setAvailabilityStatus(AppConstants.VOLUNTEER_AVAILABLE);
+                v.removeAssignedRequest(requestId);
+            }
+        }
     }
 
-    /**
-     * Finds the best available volunteer for a given request.
-     * TODO [Ashish K Biju] – Implement matching algorithm (availability, proximity, etc.)
-     *
-     * @param request the {@link Request} requiring a volunteer
-     * @return the matched {@link Volunteer}, or {@code null} if none available
-     */
     public Volunteer matchVolunteer(Request request) {
-        // TODO [Ashish K Biju] – Implement
+        for (Volunteer v : volunteers) {
+            if (AppConstants.VOLUNTEER_AVAILABLE.equals(v.getAvailabilityStatus())) {
+                return v;
+            }
+        }
+        return null;   // nobody available
+    }
+
+    /** Upgrades an existing user to a volunteer. */
+    public Volunteer registerVolunteer(User user) {
+        for (Volunteer v : volunteers) {
+            if (v.getUserId().equals(user.getUserId())) return v;   // already registered
+        }
+        String volId = String.format("VOL-%03d", volunteers.size() + 1);
+        Volunteer v = new Volunteer(user.getUserId(), user.getName(), user.getEmail(),
+                                    user.getPhone(), user.getPassword(),
+                                    volId, AppConstants.VOLUNTEER_AVAILABLE);
+        volunteers.add(v);
+        return v;
+    }
+
+    public List<Request>   getRequests()   { return requests; }
+    public List<Volunteer> getVolunteers() { return volunteers; }
+
+    private Request findRequest(String id) {
+        if (id == null) return null;
+        for (Request r : requests) if (id.equals(r.getRequestId())) return r;
         return null;
     }
 
+    private Volunteer findVolunteer(String id) {
+        if (id == null) return null;
+        for (Volunteer v : volunteers) if (id.equals(v.getVolunteerId())) return v;
+        return null;
+    }
     // =========================================================================
     // SECTION 4 – ADMIN OPERATIONS
     // Owner: Alan Saji

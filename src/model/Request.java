@@ -78,19 +78,14 @@ public class Request {
      * @param newStatus the new status value (use AppConstants.REQUEST_STATUS_*)
      */
     public void updateRequestStatus(String newStatus) {
-        // TODO [Ashish K Biju] – Implement
+    if (newStatus != null) {
+        this.status = newStatus;
     }
+}
 
-    /**
-     * Assigns a volunteer to this request.
-     * TODO [Ashish K Biju] – Implement volunteer assignment and matching
-     *
-     * @param volunteerId the volunteerId to assign
-     */
-    public void assignVolunteer(String volunteerId) {
-        // TODO [Ashish K Biju] – Implement
-    }
-
+public void assignVolunteer(String volunteerId) {
+    this.assignedVolunteerId = volunteerId;
+}
     // -------------------------------------------------------------------------
     // toString
     // -------------------------------------------------------------------------

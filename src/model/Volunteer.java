@@ -53,30 +53,15 @@ public class Volunteer extends User {
     public List<String> getAssignedRequestIds()                           { return assignedRequestIds; }
     public void         setAssignedRequestIds(List<String> requestIds)    { this.assignedRequestIds = requestIds; }
 
-    // -------------------------------------------------------------------------
-    // Volunteer-specific method placeholders
-    // TODO [Ashish K Biju] – Implement volunteer management methods below
-    // -------------------------------------------------------------------------
-
-    /**
-     * Adds a request ID to this volunteer's assigned list.
-     * TODO [Ashish K Biju] – Implement; also update the Request's status
-     */
     public void addAssignedRequest(String requestId) {
-        // TODO [Ashish K Biju] – Implement
+    if (requestId != null && !assignedRequestIds.contains(requestId)) {
+        assignedRequestIds.add(requestId);
     }
+}
 
-    /**
-     * Removes a request ID from this volunteer's assigned list.
-     * TODO [Ashish K Biju] – Implement; call when request is resolved/cancelled
-     */
-    public void removeAssignedRequest(String requestId) {
-        // TODO [Ashish K Biju] – Implement
-    }
-
-    // -------------------------------------------------------------------------
-    // toString
-    // -------------------------------------------------------------------------
+public void removeAssignedRequest(String requestId) {
+    assignedRequestIds.remove(requestId);
+}
 
     @Override
     public String toString() {
