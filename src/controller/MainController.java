@@ -25,11 +25,10 @@ public class MainController {
     // -------------------------------------------------------------------------
     // Fields
     // -------------------------------------------------------------------------
-    private MainView         view;
-    private User             currentUser;    // The currently logged-in user (null when no session)
-    // [Alan Saji] – Authentication components (Section 1)
-    private model.UserRepository  userRepository;
-    private AuthController   authController;
+    private MainView              view;
+    private User                  currentUser;
+    private model.UserRepository userRepository;
+    private AuthController        authController;
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -38,7 +37,6 @@ public class MainController {
     public MainController(MainView view) {
         this.view           = view;
         this.currentUser    = null;
-        // [Alan Saji] – Initialize authentication components
         this.userRepository = new model.UserRepository();
         this.authController = new AuthController(userRepository);
     }
@@ -59,7 +57,6 @@ public class MainController {
      * @return {@code true} if login succeeded, {@code false} otherwise
      */
     public boolean login(String email, String password) {
-        // [Alan Saji] – Delegate to AuthController; synchronize currentUser on success.
         // LIMITATION: password is compared in plaintext. Hashing deferred to a later phase.
         boolean success = authController.login(email, password);
         if (success) {
@@ -76,7 +73,6 @@ public class MainController {
      * TODO [Alan Saji] – Implement session teardown, navigate back to login screen
      */
     public void logout() {
-        // [Alan Saji] – Delegate to AuthController, then clear local session reference
         authController.logout();
         this.currentUser = null;
     }
@@ -218,8 +214,7 @@ public class MainController {
      * @return list of all {@link User} objects
      */
     public List<User> getAllUsers() {
-        // TODO [Alan Saji] – Implement
-        return null;
+        return userRepository.getAllUsers();
     }
 
     /**
@@ -229,7 +224,10 @@ public class MainController {
      * @param userId the ID of the user to deactivate
      */
     public void deactivateUser(String userId) {
-        // TODO [Alan Saji] – Implement
+        if (userId == null || userId.trim().isEmpty()) {
+            return;
+        }
+        userRepository.deactivateUser(userId);
     }
 
     // =========================================================================

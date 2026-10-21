@@ -20,11 +20,18 @@ public class AuthController {
         User user = userRepository.findByEmail(email);
 
         if (user == null) {
+            currentUser = null;
+            return false;
+        }
+
+        if (!userRepository.isUserActive(user.getUserId())) {
+            currentUser = null;
             return false;
         }
 
         if (user.getPassword() == null ||
             !user.getPassword().equals(password)) {
+            currentUser = null;
             return false;
         }
 
