@@ -8,13 +8,16 @@ import model.User;
 import model.Volunteer;
 import view.MainView;
 import service.ResourceService;
+
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Comparator;
+
 import util.AppConstants;
+
 /**
  * MainController.java
  * Central controller that wires views, models and future data services.
- * Each team member adds their feature logic in clearly marked sections below.
  *
  * TODO [Alan Saji]       – Authentication, database integration, admin operations, final integration
  * TODO [Ananya Raju]     – UI interactions delegated from MainView
@@ -26,17 +29,25 @@ public class MainController {
     // -------------------------------------------------------------------------
     // Fields
     // -------------------------------------------------------------------------
+
     private MainView view;
-    private User     currentUser;   // The currently logged-in user (null when no session)
+    private User currentUser;
+
+    private ResourceService resourceService = new ResourceService();
+
+    // Request and volunteer data (in-memory for now)
+    private List<Request> requests = new ArrayList<>();
+    private List<Volunteer> volunteers = new ArrayList<>();
+
+    private int requestCounter = 1;
 
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
 
     public MainController(MainView view) {
-        this.view        = view;
+        this.view = view;
         this.currentUser = null;
-        // TODO [Alan Saji] – Initialize data source / repository connections here
     }
 
     // =========================================================================
@@ -44,36 +55,15 @@ public class MainController {
     // Owner: Alan Saji
     // =========================================================================
 
-    /**
-     * Authenticates a user by email and password.
-     * On success, sets {@code currentUser} and routes to the correct dashboard.
-     *
-     * TODO [Alan Saji] – Implement: validate credentials, set currentUser, route
-     *
-     * @param email    the user's email address
-     * @param password the user's password (will be hashed before comparison)
-     * @return {@code true} if login succeeded, {@code false} otherwise
-     */
     public boolean login(String email, String password) {
-        // TODO [Alan Saji] – Implement
+        // TODO [Alan Saji] – Implement authentication
         return false;
     }
 
-    /**
-     * Logs out the current user and clears the session.
-     * TODO [Alan Saji] – Implement session teardown, navigate back to login screen
-     */
     public void logout() {
-        // TODO [Alan Saji] – Implement
         this.currentUser = null;
     }
 
-    /**
-     * Returns the currently authenticated user.
-     * TODO [Alan Saji] – Implement session management
-     *
-     * @return the logged-in {@link User}, or {@code null} if no active session
-     */
     public User getCurrentUser() {
         return currentUser;
     }
@@ -83,59 +73,32 @@ public class MainController {
     // Owner: Ardra K Gireesh
     // =========================================================================
 
-    /**
-     * Adds a new resource to the campus catalog.
-     * TODO [Ardra K Gireesh] – Implement; persist to data source
-     *
-     * @param resource the {@link Resource} object to add
-     */
-    private ResourceService resourceService = new ResourceService();
     public void addResource(Resource resource) {
         resourceService.addResource(resource);
     }
 
-    /**
-     * Searches the resource catalog by name or category keyword.
-     * TODO [Ardra K Gireesh] – Implement search/filter logic
-     *
-     * @param keyword the search term
-     * @return a list of matching {@link Resource} objects (empty if none)
-     */
     public List<Resource> searchResources(String keyword) {
         return resourceService.searchResources(keyword);
     }
 
-    /**
-     * Processes a borrow request for a resource.
-     * TODO [Ardra K Gireesh] – Implement; update Resource status, create a BORROW Request
-     *
-     * @param resourceId the ID of the resource to borrow
-     * @param borrowerId the userId of the requester
-     * @return {@code true} if the borrow was successful
-     */
-  
     public boolean borrowResource(String resourceId, String borrowerId) {
-        Resource r = resourceService.findById(resourceId);
-        if (r == null) {
+        Resource resource = resourceService.findById(resourceId);
+
+        if (resource == null) {
             return false;
         }
-        return r.borrowResource(borrowerId);
+
+        return resource.borrowResource(borrowerId);
     }
 
-    /**
-     * Processes the return/handover of a borrowed resource.
-     * TODO [Ardra K Gireesh] – Implement; update Resource status and Request status
-     *
-     * @param resourceId the ID of the resource being returned
-     * @param returnerId the userId of the person returning it
-     * @return {@code true} if the return was successful
-     */
     public boolean returnResource(String resourceId, String returnerId) {
-        Resource r = resourceService.findById(resourceId);
-        if (r == null) {
+        Resource resource = resourceService.findById(resourceId);
+
+        if (resource == null) {
             return false;
         }
-        return r.returnResource(returnerId);
+
+        return resource.returnResource(returnerId);
     }
 
     // =========================================================================
@@ -143,132 +106,427 @@ public class MainController {
     // Owner: Ashish K Biju
     // =========================================================================
 
-        // Section 3 data (in-memory for now; Alan's repository replaces this later)
-    private List<Request>   requests       = new ArrayList<>();
-    private List<Volunteer> volunteers     = new ArrayList<>();
-    private int             requestCounter = 1;
+    /**
+     * Creates a request without a required skill.
+     */
+    public Request createRequest(
+            String requestType,
+            String requesterId,
+            String description) {
 
-    public Request createRequest(String requestType, String requesterId, String description) {
-        if (requestType == null || requesterId == null
-                || description == null || description.trim().isEmpty()) {
-            return null;   // invalid input
+        return createRequest(
+                requestType,
+                requesterId,
+                description,
+                null
+        );
+    }
+
+    /**
+     * Creates a request with an optional required skill.
+     */
+    public Request createRequest(
+            String requestType,
+            String requesterId,
+            String description,
+            String requiredSkill) {
+
+        if (requestType == null
+                || requesterId == null
+                || description == null
+                || description.trim().isEmpty()) {
+
+            return null;
         }
-        String id  = String.format("REQ-%03d", requestCounter++);
-        String now = java.time.LocalDateTime.now().withNano(0).toString();
-        Request request = new Request(id, requestType, requesterId, description,
-                                      AppConstants.REQUEST_STATUS_OPEN, null, now);
+
+        String requestId =
+                String.format("REQ-%03d", requestCounter++);
+
+        String createdAt =
+                java.time.LocalDateTime.now()
+                        .withNano(0)
+                        .toString();
+
+        Request request = new Request(
+                requestId,
+                requestType,
+                requesterId,
+                description,
+                AppConstants.REQUEST_STATUS_OPEN,
+                null,
+                createdAt
+        );
+
+        request.setRequiredSkill(requiredSkill);
+
         requests.add(request);
 
+        // Immediately attempt matching when an emergency is created.
         if (AppConstants.REQUEST_TYPE_EMERGENCY.equals(requestType)) {
-            Volunteer match = matchVolunteer(request);
-            if (match != null) {
-                assignVolunteer(id, match.getVolunteerId());
-            }
+            assignWaitingRequests();
         }
+
         return request;
     }
 
-    public boolean assignVolunteer(String requestId, String volunteerId) {
-        Request   request   = findRequest(requestId);
+    /**
+     * Assigns an available volunteer to an open request.
+     */
+    public boolean assignVolunteer(
+            String requestId,
+            String volunteerId) {
+
+        Request request = findRequest(requestId);
         Volunteer volunteer = findVolunteer(volunteerId);
-        if (request == null || volunteer == null) return false;
-        if (!AppConstants.REQUEST_STATUS_OPEN.equals(request.getStatus())) return false;
-        if (!AppConstants.VOLUNTEER_AVAILABLE.equals(volunteer.getAvailabilityStatus())) return false;
+
+        if (request == null || volunteer == null) {
+            return false;
+        }
+
+        if (!AppConstants.REQUEST_STATUS_OPEN.equals(
+                request.getStatus())) {
+            return false;
+        }
+
+        if (!AppConstants.VOLUNTEER_AVAILABLE.equals(
+                volunteer.getAvailabilityStatus())) {
+            return false;
+        }
 
         request.assignVolunteer(volunteerId);
-        request.updateRequestStatus(AppConstants.REQUEST_STATUS_ASSIGNED);
-        volunteer.setAvailabilityStatus(AppConstants.VOLUNTEER_BUSY);
+
+        request.updateRequestStatus(
+                AppConstants.REQUEST_STATUS_ASSIGNED
+        );
+
         volunteer.addAssignedRequest(requestId);
+
+        volunteer.setAvailabilityStatus(
+                AppConstants.VOLUNTEER_BUSY
+        );
+
         return true;
     }
 
-    public void updateRequestStatus(String requestId, String newStatus) {
-        Request request = findRequest(requestId);
-        if (request == null || newStatus == null) return;
+    /**
+     * Updates a request's status when the transition is valid.
+     */
+    public void updateRequestStatus(
+            String requestId,
+            String newStatus) {
 
-        String current = request.getStatus();
+        Request request = findRequest(requestId);
+
+        if (request == null || newStatus == null) {
+            return;
+        }
+
+        String currentStatus = request.getStatus();
+
         boolean allowed =
-              (AppConstants.REQUEST_STATUS_OPEN.equals(current) &&
-                  (AppConstants.REQUEST_STATUS_ASSIGNED.equals(newStatus)
-                   || AppConstants.REQUEST_STATUS_CANCELLED.equals(newStatus)))
-           || (AppConstants.REQUEST_STATUS_ASSIGNED.equals(current) &&
-                  (AppConstants.REQUEST_STATUS_RESOLVED.equals(newStatus)
-                   || AppConstants.REQUEST_STATUS_CANCELLED.equals(newStatus)));
-        if (!allowed) return;   // invalid transition, ignore
+                (
+                    AppConstants.REQUEST_STATUS_OPEN.equals(currentStatus)
+                    &&
+                    (
+                        AppConstants.REQUEST_STATUS_ASSIGNED.equals(newStatus)
+                        || AppConstants.REQUEST_STATUS_CANCELLED.equals(newStatus)
+                    )
+                )
+                ||
+                (
+                    AppConstants.REQUEST_STATUS_ASSIGNED.equals(currentStatus)
+                    &&
+                    (
+                        AppConstants.REQUEST_STATUS_RESOLVED.equals(newStatus)
+                        || AppConstants.REQUEST_STATUS_CANCELLED.equals(newStatus)
+                    )
+                );
+
+        // Ignore invalid status transitions.
+        if (!allowed) {
+            return;
+        }
 
         request.updateRequestStatus(newStatus);
 
-        // Free the volunteer when the work is finished or cancelled
+        // Release the assigned volunteer when work is completed or cancelled.
         if (AppConstants.REQUEST_STATUS_RESOLVED.equals(newStatus)
                 || AppConstants.REQUEST_STATUS_CANCELLED.equals(newStatus)) {
-            Volunteer v = findVolunteer(request.getAssignedVolunteerId());
-            if (v != null) {
-                v.setAvailabilityStatus(AppConstants.VOLUNTEER_AVAILABLE);
-                v.removeAssignedRequest(requestId);
+
+            Volunteer volunteer =
+                    findVolunteer(request.getAssignedVolunteerId());
+
+            if (volunteer != null) {
+
+                volunteer.removeAssignedRequest(requestId);
+
+                // A volunteer stays busy if other tasks are still assigned.
+                if (volunteer.getAssignedRequestIds().isEmpty()) {
+                    volunteer.setAvailabilityStatus(
+                            AppConstants.VOLUNTEER_AVAILABLE
+                    );
+                }
             }
+
+            // A newly available volunteer may handle a waiting emergency.
+            assignWaitingRequests();
         }
     }
 
+    /**
+     * Finds the best available volunteer for a request.
+     *
+     * Matching rules:
+     * 1. Only available volunteers are considered.
+     * 2. For normal requests, a specified skill is mandatory.
+     * 3. For emergencies, a volunteer without the skill may be used
+     *    as a fallback.
+     * 4. Volunteers with the required skill receive a higher score.
+     * 5. Fewer assigned requests break ties.
+     */
     public Volunteer matchVolunteer(Request request) {
-        for (Volunteer v : volunteers) {
-            if (AppConstants.VOLUNTEER_AVAILABLE.equals(v.getAvailabilityStatus())) {
-                return v;
+
+        if (request == null) {
+            return null;
+        }
+
+        String skill = request.getRequiredSkill();
+
+        boolean needsSkill =
+                skill != null && !skill.trim().isEmpty();
+
+        boolean emergency =
+                AppConstants.REQUEST_TYPE_EMERGENCY.equals(
+                        request.getRequestType()
+                );
+
+        Volunteer bestVolunteer = null;
+        int bestScore = Integer.MIN_VALUE;
+
+        for (Volunteer volunteer : volunteers) {
+
+            if (!AppConstants.VOLUNTEER_AVAILABLE.equals(
+                    volunteer.getAvailabilityStatus())) {
+                continue;
+            }
+
+            boolean skillMatch =
+                    needsSkill && volunteer.hasSkill(skill);
+
+            // A normal request cannot be matched to an unskilled volunteer.
+            // An emergency may use an unskilled volunteer as a fallback.
+            if (needsSkill && !skillMatch && !emergency) {
+                continue;
+            }
+
+            int currentScore = score(volunteer, skill);
+
+            if (bestVolunteer == null
+                    || currentScore > bestScore) {
+
+                bestVolunteer = volunteer;
+                bestScore = currentScore;
             }
         }
-        return null;   // nobody available
+
+        return bestVolunteer;
     }
 
-    /** Upgrades an existing user to a volunteer. */
-    public Volunteer registerVolunteer(User user) {
-        for (Volunteer v : volunteers) {
-            if (v.getUserId().equals(user.getUserId())) return v;   // already registered
+    /**
+     * Calculates a volunteer's matching score.
+     * A required-skill match is worth 100 points.
+     * Each currently assigned request reduces the score by one.
+     */
+    private int score(Volunteer volunteer, String skill) {
+
+        int score = 0;
+
+        if (skill != null
+                && !skill.trim().isEmpty()
+                && volunteer.hasSkill(skill)) {
+
+            score += 100;
         }
-        String volId = String.format("VOL-%03d", volunteers.size() + 1);
-        Volunteer v = new Volunteer(user.getUserId(), user.getName(), user.getEmail(),
-                                    user.getPhone(), user.getPassword(),
-                                    volId, AppConstants.VOLUNTEER_AVAILABLE);
-        volunteers.add(v);
-        return v;
+
+        if (volunteer.getAssignedRequestIds() != null) {
+            score -= volunteer.getAssignedRequestIds().size();
+        }
+
+        return score;
     }
 
-    public List<Request>   getRequests()   { return requests; }
-    public List<Volunteer> getVolunteers() { return volunteers; }
+    /**
+     * Returns requests with emergencies first and older requests
+     * before newer requests within the same priority.
+     */
+    public List<Request> getRequestsByPriority() {
 
+        List<Request> sortedRequests = new ArrayList<>(requests);
+
+        sortedRequests.sort(
+                Comparator
+                    .comparingInt(
+                        (Request request) ->
+                            AppConstants.REQUEST_TYPE_EMERGENCY.equals(
+                                    request.getRequestType()
+                            ) ? 0 : 1
+                    )
+                    .thenComparing(
+                        Request::getCreatedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                    )
+        );
+
+        return sortedRequests;
+    }
+
+    /**
+     * Automatically assigns available volunteers to waiting emergencies.
+     * Emergency requests are processed by priority and creation time.
+     */
+    public void assignWaitingRequests() {
+
+        for (Request request : getRequestsByPriority()) {
+
+            // Only open emergency requests are handled here.
+            if (!AppConstants.REQUEST_STATUS_OPEN.equals(
+                    request.getStatus())) {
+                continue;
+            }
+
+            if (!AppConstants.REQUEST_TYPE_EMERGENCY.equals(
+                    request.getRequestType())) {
+                continue;
+            }
+
+            Volunteer match = matchVolunteer(request);
+
+            if (match != null) {
+                assignVolunteer(
+                        request.getRequestId(),
+                        match.getVolunteerId()
+                );
+            }
+        }
+    }
+
+    /**
+     * Registers an existing user as a volunteer.
+     */
+    public Volunteer registerVolunteer(User user) {
+
+        if (user == null) {
+            return null;
+        }
+
+        for (Volunteer volunteer : volunteers) {
+
+            if (volunteer.getUserId().equals(user.getUserId())) {
+                return volunteer;
+            }
+        }
+
+        String volunteerId =
+                String.format("VOL-%03d", volunteers.size() + 1);
+
+        Volunteer volunteer = new Volunteer(
+                user.getUserId(),
+                user.getName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getPassword(),
+                volunteerId,
+                AppConstants.VOLUNTEER_AVAILABLE
+        );
+
+        volunteers.add(volunteer);
+
+        // A newly registered volunteer may be able to handle a waiting
+        // emergency immediately.
+        assignWaitingRequests();
+
+        return volunteer;
+    }
+
+    /**
+     * Updates a volunteer's skills.
+     */
+    public boolean updateVolunteerSkills(
+            String volunteerId,
+            List<String> skills) {
+
+        Volunteer volunteer = findVolunteer(volunteerId);
+
+        if (volunteer == null || skills == null) {
+            return false;
+        }
+
+        volunteer.setSkills(skills);
+
+        // Recheck waiting emergencies after skills change.
+        assignWaitingRequests();
+
+        return true;
+    }
+
+    public List<Request> getRequests() {
+        return requests;
+    }
+
+    public List<Volunteer> getVolunteers() {
+        return volunteers;
+    }
+
+    /**
+     * Finds a request by ID.
+     */
     private Request findRequest(String id) {
-        if (id == null) return null;
-        for (Request r : requests) if (id.equals(r.getRequestId())) return r;
+
+        if (id == null) {
+            return null;
+        }
+
+        for (Request request : requests) {
+
+            if (id.equals(request.getRequestId())) {
+                return request;
+            }
+        }
+
         return null;
     }
 
+    /**
+     * Finds a volunteer by volunteer ID.
+     */
     private Volunteer findVolunteer(String id) {
-        if (id == null) return null;
-        for (Volunteer v : volunteers) if (id.equals(v.getVolunteerId())) return v;
+
+        if (id == null) {
+            return null;
+        }
+
+        for (Volunteer volunteer : volunteers) {
+
+            if (id.equals(volunteer.getVolunteerId())) {
+                return volunteer;
+            }
+        }
+
         return null;
     }
+
     // =========================================================================
     // SECTION 4 – ADMIN OPERATIONS
     // Owner: Alan Saji
     // =========================================================================
 
-    /**
-     * Retrieves all registered users.
-     * TODO [Alan Saji] – Implement; fetch from data source
-     *
-     * @return list of all {@link User} objects
-     */
     public List<User> getAllUsers() {
-        // TODO [Alan Saji] – Implement
+        // TODO [Alan Saji] – Fetch from data source
         return null;
     }
 
-    /**
-     * Deactivates a user account.
-     * TODO [Alan Saji] – Implement; enforce admin-only access
-     *
-     * @param userId the ID of the user to deactivate
-     */
     public void deactivateUser(String userId) {
-        // TODO [Alan Saji] – Implement
+        // TODO [Alan Saji] – Implement account deactivation
     }
 
     // =========================================================================
@@ -276,14 +534,7 @@ public class MainController {
     // Owner: Ananya Raju (UI flow) | Alan Saji (final integration)
     // =========================================================================
 
-    /**
-     * Starts the application: shows the login screen.
-     * TODO [Ananya Raju] – Implement initial UI routing
-     * TODO [Alan Saji]   – Wire session restoration on restart if needed
-     */
     public void start() {
-        // TODO [Ananya Raju] – Implement
         view.showLoginScreen();
     }
 }
-
