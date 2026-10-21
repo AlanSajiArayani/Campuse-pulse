@@ -1,15 +1,12 @@
 package model;
+
 import util.AppConstants;
+
 /**
  * Student.java
  * Represents a student user of CampusPulse.
  * Extends {@link User} — inherits userId, name, email, phone, password, role.
- *
- * TODO [Ananya Raju] – OOP model ownership; add student-specific UI behaviour
- *
- * SHARED MODEL – Do NOT add fields that already exist in User.
  */
-
 public class Student extends User {
 
     // -------------------------------------------------------------------------

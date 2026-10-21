@@ -244,10 +244,13 @@ public class AdminTest {
                         controller.deactivateUser(null);
                         controller.deactivateUser("");
                         controller.deactivateUser("NONEXISTENT");
+                        controller.activateUser(null);
+                        controller.activateUser("");
+                        controller.activateUser("NONEXISTENT");
                     } catch (Exception e) {
                         deactSafe = false;
                     }
-                    assertEqual("TC-13b MainController.deactivateUser() handles null/blank/unknown safely", true, deactSafe);
+                    assertEqual("TC-13b MainController.deactivateUser() & activateUser() handle null/blank/unknown safely", true, deactSafe);
                 } finally {
                     if (previousDbPath != null) {
                         System.setProperty("campuspulse.db.path", previousDbPath);
@@ -255,6 +258,37 @@ public class AdminTest {
                         System.clearProperty("campuspulse.db.path");
                     }
                 }
+            }
+
+            // -----------------------------------------------------------------
+            // TC-14: User reactivation logic (activateUser)
+            // -----------------------------------------------------------------
+            {
+                UserRepository repo = createRepo();
+                repo.addUser(new User("U901", "Kevin", "kevin@example.com", "001", "kevin-pass", "STUDENT"));
+                AuthController auth = new AuthController(repo);
+
+                assertEqual("TC-14a User initially active", true, repo.isUserActive("U901"));
+                repo.deactivateUser("U901");
+                assertEqual("TC-14b User deactivated", false, repo.isUserActive("U901"));
+                assertEqual("TC-14c Deactivated login rejected", false, auth.login("kevin@example.com", "kevin-pass"));
+
+                boolean reactivated = repo.activateUser("U901");
+                assertEqual("TC-14d activateUser returns true", true, reactivated);
+                assertEqual("TC-14e User active after reactivation", true, repo.isUserActive("U901"));
+                assertEqual("TC-14f Reactivated user can log in", true, auth.login("kevin@example.com", "kevin-pass"));
+                auth.logout();
+
+                // Admin model delegation
+                Admin admin = new Admin("ADM9", "Boss", "boss@test.edu", "002", "p", "A-99", repo);
+                repo.deactivateUser("U901");
+                admin.activateUser("U901");
+                assertEqual("TC-14g activateUser via Admin model succeeds", true, repo.isUserActive("U901"));
+
+                // Safe handling of null/unknown
+                assertEqual("TC-14h activateUser(null) returns false", false, repo.activateUser(null));
+                assertEqual("TC-14i activateUser(\"\") returns false", false, repo.activateUser(""));
+                assertEqual("TC-14j activateUser(UNKNOWN) returns false", false, repo.activateUser("UNKNOWN"));
             }
 
         } finally {

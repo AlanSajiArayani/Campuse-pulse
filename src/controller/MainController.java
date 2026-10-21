@@ -3,7 +3,6 @@ package controller;
 import model.Admin;
 import model.Request;
 import model.Resource;
-import model.Student;
 import model.User;
 import model.Volunteer;
 import view.MainView;
@@ -17,12 +16,13 @@ import util.AppConstants;
 
 /**
  * MainController.java
- * Central controller that wires views, models and future data services.
+ * Central MVC Controller coordinating views, domain models, services, and repositories.
  *
- * TODO [Alan Saji]       – Authentication, database integration, admin operations, final integration
- * TODO [Ananya Raju]     – UI interactions delegated from MainView
- * TODO [Ardra K Gireesh] – Resource catalog, borrowing and handover tracking
- * TODO [Ashish K Biju]   – Volunteer management, emergency request matching
+ * Team Module Ownership:
+ * - Alan Saji       : Section 1 (Authentication), Section 4 (Admin Operations), Database Integration
+ * - Ardra K Gireesh : Section 2 (Resource Management, Catalog & Inventory)
+ * - Ashish K Biju   : Section 3 (Request Lifecycle, Volunteer Management & Dispatch Matching)
+ * - Ananya Raju     : Section 5 (Application Startup, View Routing & Screen Architecture)
  */
 public class MainController {
 
@@ -35,6 +35,8 @@ public class MainController {
     private AuthController        authController;
 
     private ResourceService resourceService = new ResourceService();
+    private service.RequestService requestService;
+    private service.HandoverService handoverService;
 
     // Request and volunteer data (in-memory for now)
     private List<Request> requests = new ArrayList<>();
@@ -51,6 +53,79 @@ public class MainController {
         this.currentUser    = null;
         this.userRepository = new model.UserRepository();
         this.authController = new AuthController(userRepository);
+        this.requestService = new service.RequestService(resourceService);
+        this.handoverService = new service.HandoverService(requestService, resourceService);
+        initializeSampleData();
+    }
+
+    private void initializeSampleData() {
+        if (resourceService.getAllResources().isEmpty()) {
+            resourceService.addResource(new Resource(
+                "RES-001", "Scientific Calculator", "Casio fx-991EX ClassWiz",
+                "Electronics", "U004", 5, AppConstants.RESOURCE_STATUS_AVAILABLE
+            ));
+            resourceService.addResource(new Resource(
+                "RES-002", "Digital Multimeter", "Auto-ranging multimeter with probe leads",
+                "Electronics", "U004", 2, AppConstants.RESOURCE_STATUS_AVAILABLE
+            ));
+            resourceService.addResource(new Resource(
+                "RES-003", "Algorithms Textbook", "Introduction to Algorithms (CLRS 4th Edition)",
+                "Books", "U004", 3, AppConstants.RESOURCE_STATUS_AVAILABLE
+            ));
+            resourceService.addResource(new Resource(
+                "RES-004", "Basketball & Pump", "Spalding standard outdoor basketball with pump",
+                "Sports", "U004", 4, AppConstants.RESOURCE_STATUS_AVAILABLE
+            ));
+            resourceService.addResource(new Resource(
+                "RES-005", "Arduino Starter Kit", "Arduino Uno with sensor pack and breadboard",
+                "Electronics", "U004", 2, AppConstants.RESOURCE_STATUS_AVAILABLE
+            ));
+        }
+
+        // Initialize default volunteer if not already registered
+        User volUser = userRepository.findById("U003");
+        if (volUser != null && volunteers.isEmpty()) {
+            Volunteer v = registerVolunteer(volUser);
+            if (v != null) {
+                List<String> skills = new ArrayList<>();
+                skills.add("First Aid");
+                skills.add("Lab Assistant");
+                skills.add("Tutoring");
+                v.setSkills(skills);
+            }
+        }
+
+        // Initialize sample requests if empty
+        if (requests.isEmpty()) {
+            createRequest(AppConstants.REQUEST_TYPE_GENERAL, "U001",
+                "Need guidance with lab setup for physics experiment", "Lab Assistant");
+            createRequest(AppConstants.REQUEST_TYPE_EMERGENCY, "U001",
+                "First aid needed for minor sprain on sports ground", "First Aid");
+        }
+    }
+
+    public ResourceService getResourceService() {
+        return resourceService;
+    }
+
+    public service.RequestService getRequestService() {
+        return requestService;
+    }
+
+    public service.HandoverService getHandoverService() {
+        return handoverService;
+    }
+
+    public Volunteer getVolunteerByUserId(String userId) {
+        if (userId == null) {
+            return null;
+        }
+        for (Volunteer v : volunteers) {
+            if (userId.equals(v.getUserId())) {
+                return v;
+            }
+        }
+        return null;
     }
 
     // =========================================================================
@@ -544,6 +619,13 @@ public class MainController {
             return;
         }
         userRepository.deactivateUser(userId);
+    }
+
+    public void activateUser(String userId) {
+        if (userId == null || userId.trim().isEmpty()) {
+            return;
+        }
+        userRepository.activateUser(userId);
     }
 
     // =========================================================================

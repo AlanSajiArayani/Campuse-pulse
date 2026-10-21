@@ -7,36 +7,33 @@ import model.Resource;
 import model.ResourceRequest;
 import util.AppConstants;
 
-public class RequestService
-{
+public class RequestService {
     private ResourceService resourceService;
     private List<ResourceRequest> requests = new ArrayList<>();
     private int counter = 0;
     private StatusTracker tracker = new StatusTracker();
 
-    public StatusTracker getTracker()
-    {
+    public StatusTracker getTracker() {
         return tracker;
     }
 
-    public RequestService(ResourceService resourceService)
-    {
+    public List<ResourceRequest> getAllRequests() {
+        return new ArrayList<>(requests);
+    }
+
+    public RequestService(ResourceService resourceService) {
         this.resourceService = resourceService;
     }
 
-    public ResourceRequest submitRequest(String requesterId, String resourceId)
-    {
+    public ResourceRequest submitRequest(String requesterId, String resourceId) {
         Resource r = resourceService.findById(resourceId);
-        if (r == null)
-        {
+        if (r == null) {
             return null;
         }
-        if (r.getOwnerId().equals(requesterId))
-        {
+        if (r.getOwnerId().equals(requesterId)) {
             return null;
         }
-        if (!AppConstants.RESOURCE_STATUS_AVAILABLE.equals(r.getStatus()))
-        {
+        if (!AppConstants.RESOURCE_STATUS_AVAILABLE.equals(r.getStatus())) {
             return null;
         }
         counter = counter + 1;
@@ -45,95 +42,76 @@ public class RequestService
         requests.add(req);
         return req;
     }
-        public ResourceRequest findRequest(String requestId)
-    {
-        for (ResourceRequest q : requests)
-        {
-            if (q.getRequestId().equals(requestId))
-            {
+
+    public ResourceRequest findRequest(String requestId) {
+        for (ResourceRequest q : requests) {
+            if (q.getRequestId().equals(requestId)) {
                 return q;
             }
         }
         return null;
     }
 
-    private int countAccepted(String resourceId)
-    {
+    private int countAccepted(String resourceId) {
         int count = 0;
-        for (ResourceRequest q : requests)
-        {
+        for (ResourceRequest q : requests) {
             if (q.getResourceId().equals(resourceId)
-                && ResourceRequest.STATUS_ACCEPTED.equals(q.getStatus()))
-            {
+                && ResourceRequest.STATUS_ACCEPTED.equals(q.getStatus())) {
                 count = count + 1;
             }
         }
         return count;
     }
 
-    public boolean accept(String requestId, String ownerId)
-    {
+    public boolean accept(String requestId, String ownerId) {
         ResourceRequest req = findRequest(requestId);
-        if (req == null)
-        {
+        if (req == null) {
             return false;
         }
         Resource r = resourceService.findById(req.getResourceId());
-        if (r == null)
-        {
+        if (r == null) {
             return false;
         }
-        if (!r.getOwnerId().equals(ownerId))
-        {
+        if (!r.getOwnerId().equals(ownerId)) {
             return false;
         }
-        if (!ResourceRequest.STATUS_PENDING.equals(req.getStatus()))
-        {
+        if (!ResourceRequest.STATUS_PENDING.equals(req.getStatus())) {
             return false;
         }
-        if (countAccepted(req.getResourceId()) >= r.getQuantity())
-        {
+        if (countAccepted(req.getResourceId()) >= r.getQuantity()) {
             return false;
         }
         return tracker.updateStatus(req, ResourceRequest.STATUS_ACCEPTED);
-    
     }
-    public boolean decline(String requestId, String ownerId)
-    {
+
+    public boolean decline(String requestId, String ownerId) {
         ResourceRequest req = findRequest(requestId);
-        if (req == null)
-        {
+        if (req == null) {
             return false;
         }
         Resource r = resourceService.findById(req.getResourceId());
-        if (r == null)
-        {
+        if (r == null) {
             return false;
         }
-        if (!r.getOwnerId().equals(ownerId))
-        {
+        if (!r.getOwnerId().equals(ownerId)) {
             return false;
         }
-        if (!ResourceRequest.STATUS_PENDING.equals(req.getStatus()))
-        {
+        if (!ResourceRequest.STATUS_PENDING.equals(req.getStatus())) {
             return false;
         }
         return tracker.updateStatus(req, ResourceRequest.STATUS_DECLINED);
     }
-    public boolean cancel(String requestId, String requesterId)
-    {
+
+    public boolean cancel(String requestId, String requesterId) {
         ResourceRequest req = findRequest(requestId);
-        if (req == null)
-        {
+        if (req == null) {
             return false;
         }
-        if (!req.getRequesterId().equals(requesterId))
-        {
+        if (!req.getRequesterId().equals(requesterId)) {
             return false;
         }
         if (!ResourceRequest.STATUS_PENDING.equals(req.getStatus())
-            && !ResourceRequest.STATUS_ACCEPTED.equals(req.getStatus()))
-        {
+            && !ResourceRequest.STATUS_ACCEPTED.equals(req.getStatus())) {
             return false;
         }
         return tracker.updateStatus(req, ResourceRequest.STATUS_CANCELLED);

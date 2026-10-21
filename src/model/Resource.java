@@ -23,70 +23,65 @@ public class Resource {
         this.quantity     = quantity;
         this.status       = status;
     }
-    public String getResourceId()                   
-    {
-         return resourceId; 
-    }
-    public void   setResourceId(String resourceId)
-    { this.resourceId = resourceId; 
 
-    }
-    public String getResourceName()                     
-    { return resourceName; 
-
-    }
-    public void   setResourceName(String resourceName)  
-    { this.resourceName = resourceName; 
-
-    }
-    public String getDescription()                    
-    { return description; 
-
-    }
-    public void   setDescription(String description)  
-    { this.description = description; 
-
+    public String getResourceId() {
+        return resourceId;
     }
 
-    public String getCategory()                   
-    { return category; 
-
-    }
-    public void   setCategory(String category)    
-    { this.category = category; 
-
+    public void setResourceId(String resourceId) {
+        this.resourceId = resourceId;
     }
 
-    public String getOwnerId()                
-    { return ownerId; 
-
-    }
-    public void   setOwnerId(String ownerId)  
-    { this.ownerId = ownerId; 
-
+    public String getResourceName() {
+        return resourceName;
     }
 
-    public int  getQuantity()             
-    { return quantity; 
-
-    }
-    public void setQuantity(int quantity) 
-    { this.quantity = quantity; 
-
+    public void setResourceName(String resourceName) {
+        this.resourceName = resourceName;
     }
 
-    public String getStatus()               
-    { return status; 
-
-    }
-    public void   setStatus(String status)  
-    { this.status = status; 
-        
+    public String getDescription() {
+        return description;
     }
 
-    public boolean borrowResource(String borrowerId) 
-    {
-         if (quantity > 0 && AppConstants.RESOURCE_STATUS_AVAILABLE.equals(status)) {
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(String ownerId) {
+        this.ownerId = ownerId;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public boolean borrowResource(String borrowerId) {
+        if (quantity > 0 && AppConstants.RESOURCE_STATUS_AVAILABLE.equals(status)) {
             quantity = quantity - 1;
             if (quantity == 0) {
                 status = AppConstants.RESOURCE_STATUS_BORROWED;
@@ -97,7 +92,7 @@ public class Resource {
     }
 
     public boolean returnResource(String returnerId) {
-         quantity = quantity + 1;
+        quantity = quantity + 1;
         status = AppConstants.RESOURCE_STATUS_AVAILABLE;
         return true;
     }
@@ -109,4 +104,5 @@ public class Resource {
                ", status='" + status + "'}";
     }
 }
+
 

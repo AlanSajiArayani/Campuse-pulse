@@ -175,6 +175,14 @@ public class DatabaseTest {
                 UserRepository repo2 = new UserRepository(dbPath);
                 assertEqual("TC-8d Deactivation persisted in second instance", false, repo2.isUserActive("U008"));
                 assertNotNull("TC-8e Deactivated user still present in repository", repo2.findById("U008"));
+
+                // Reactivation persists across repository instances
+                boolean act = repo2.activateUser("U008");
+                assertEqual("TC-8f activateUser() returns true", true, act);
+                assertEqual("TC-8g User is active in instance 2", true, repo2.isUserActive("U008"));
+
+                UserRepository repo3 = new UserRepository(dbPath);
+                assertEqual("TC-8h Reactivation persisted in third instance", true, repo3.isUserActive("U008"));
             }
 
             // -----------------------------------------------------------------

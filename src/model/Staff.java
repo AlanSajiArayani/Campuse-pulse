@@ -1,14 +1,11 @@
 package model;
+
 import util.AppConstants;
+
 /**
  * Staff.java
  * Represents a staff member user of CampusPulse.
  * Extends {@link User} — inherits userId, name, email, phone, password, role.
- *
- * TODO [Ananya Raju] – OOP model ownership
- * TODO [Ardra K Gireesh] – Staff may own resources; link via ownerId in Resource
- *
- * SHARED MODEL – Do NOT add fields that already exist in User.
  */
 public class Staff extends User {
 

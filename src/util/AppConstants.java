@@ -2,10 +2,7 @@ package util;
 
 /**
  * AppConstants.java
- * Shared application-wide constants.
- *
- * TODO [Ananya Raju] – Add UI-related constants (screen titles, labels, etc.)
- * TODO [Alan Saji]   – Add database/config-related constants as needed
+ * Shared application-wide constants for roles, statuses, UI labels, and system metadata.
  */
 public class AppConstants {
 

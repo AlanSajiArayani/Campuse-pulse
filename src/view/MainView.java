@@ -1,111 +1,204 @@
 package view;
+
 import controller.MainController;
+import model.Request;
+import model.Resource;
+import model.ResourceRequest;
 import model.User;
+import model.Volunteer;
 import util.AppConstants;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.HierarchyEvent;
+import java.util.List;
 
 /**
  * MainView.java
- * Entry-point for the CampusPulse user interface.
+ * Minimalist Swing graphical user interface for CampusPulse.
  *
- * TODO [Ananya Raju] – Full UI and dashboard implementation
- *                      Responsible for rendering screens, menus, and forms.
+ * Implements role-based dashboards (Student, Volunteer, Staff, Admin)
+ * with structured tables, lists, catalog browsing, request tracking,
+ * handover verification, and user management.
+ *
+ * Owner: Ananya Raju (Visual Design & Screen Architecture)
  */
 public class MainView {
-    private JFrame frame;
-    private JPanel mainPanel;
-    private CardLayout cardLayout;
+
+    private final JFrame frame;
+    private final JPanel mainPanel;
+    private final CardLayout cardLayout;
     private MainController controller;
 
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
+    // Minimalist, neutral header colors
+    private static final Color HEADER_BG = new Color(44, 52, 60); // Neutral dark slate
+    private static final Color HEADER_FG = Color.WHITE;
+    private static final Color HEADER_SUB = new Color(180, 185, 190);
 
     public MainView() {
-        frame = new JFrame(AppConstants.APP_NAME);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(900, 600);
-        frame.setLocationRelativeTo(null);
-
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
-        frame.setContentPane(mainPanel);
+        if (!GraphicsEnvironment.isHeadless()) {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception ignored) {
+                // Fall back to standard Swing look and feel
+            }
+
+            frame = new JFrame(AppConstants.APP_NAME);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setSize(1000, 700);
+            frame.setMinimumSize(new Dimension(850, 600));
+            frame.setLocationRelativeTo(null);
+            frame.setContentPane(mainPanel);
+        } else {
+            frame = null;
+        }
     }
 
     public void setController(MainController controller) {
         this.controller = controller;
     }
 
-    // -------------------------------------------------------------------------
-    // UI placeholder methods
-    // TODO [Ananya Raju] – Implement all display methods below
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    // NAVIGATION & HEADER HELPERS
+    // =========================================================================
 
-    /**
-     * Displays the main login screen.
-     * TODO [Ananya Raju] – Implement login UI
-     */
-    
-    /**
-     * Displays the main login screen.
-     * TODO [Ananya Raju] – Implement login UI
-     */
+    private JPanel createHeader(String screenTitle) {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(HEADER_BG);
+        header.setBorder(new EmptyBorder(10, 16, 10, 16));
+
+        // Left title & subtitle
+        JPanel titlePanel = new JPanel(new GridLayout(2, 1, 2, 2));
+        titlePanel.setOpaque(false);
+
+        JLabel appTitle = new JLabel(AppConstants.APP_NAME + " • " + screenTitle);
+        appTitle.setFont(new Font("SansSerif", Font.BOLD, 17));
+        appTitle.setForeground(HEADER_FG);
+        titlePanel.add(appTitle);
+
+        User user = controller != null ? controller.getCurrentUser() : null;
+        String userDetails = user != null
+                ? "User: " + user.getName() + " (" + user.getEmail() + ") | Role: " + user.getRole()
+                : "Not Authenticated";
+        JLabel subTitle = new JLabel(userDetails);
+        subTitle.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        subTitle.setForeground(HEADER_SUB);
+        titlePanel.add(subTitle);
+
+        header.add(titlePanel, BorderLayout.WEST);
+
+        // Right button panel (Logout)
+        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        rightPanel.setOpaque(false);
+
+        JButton logoutBtn = new JButton(AppConstants.LABEL_LOGOUT);
+        logoutBtn.setFocusPainted(false);
+        logoutBtn.addActionListener(e -> {
+            if (controller != null) {
+                controller.logout();
+            }
+            showLoginScreen();
+        });
+
+        rightPanel.add(logoutBtn);
+        header.add(rightPanel, BorderLayout.EAST);
+
+        return header;
+    }
+
+    private void styleTable(JTable table) {
+        table.setRowHeight(26);
+        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.setFillsViewportHeight(true);
+    }
+
+    // =========================================================================
+    // 1. LOGIN SCREEN
+    // =========================================================================
+
     public void showLoginScreen() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
+        JPanel outer = new JPanel(new GridBagLayout());
+        outer.setBackground(new Color(245, 245, 247));
 
-        gbc.insets = new Insets(8, 8, 8, 8);
+        JPanel card = new JPanel(new GridBagLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(215, 215, 220), 1),
+                new EmptyBorder(25, 30, 25, 30)
+        ));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        JLabel title = new JLabel(AppConstants.APP_NAME + " - Login",
-                SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 26));
+        JLabel title = new JLabel(AppConstants.APP_NAME, SwingConstants.CENTER);
+        title.setFont(new Font("SansSerif", Font.BOLD, 26));
+        title.setForeground(HEADER_BG);
 
-        JLabel emailLabel = new JLabel("Email:");
-        JTextField emailField = new JTextField(22);
-
-        JLabel passwordLabel = new JLabel("Password:");
-        JPasswordField passwordField = new JPasswordField(22);
-
-        JButton loginButton = new JButton("Login");
-        JLabel statusLabel = new JLabel("Enter your email and password.");
+        JLabel subtitle = new JLabel("Campus Resource & Volunteer Management", SwingConstants.CENTER);
+        subtitle.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        subtitle.setForeground(Color.DARK_GRAY);
 
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
-        panel.add(title, gbc);
+        card.add(title, gbc);
+
+        gbc.gridy = 1;
+        card.add(subtitle, gbc);
+
+        JLabel emailLabel = new JLabel("Email Address:");
+        emailLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+        JTextField emailField = new JTextField(20);
+
+        JLabel passLabel = new JLabel("Password:");
+        passLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+        JPasswordField passField = new JPasswordField(20);
 
         gbc.gridwidth = 1;
-        gbc.gridy++;
-        panel.add(emailLabel, gbc);
+        gbc.gridy = 2;
+        gbc.gridx = 0;
+        card.add(emailLabel, gbc);
         gbc.gridx = 1;
-        panel.add(emailField, gbc);
+        card.add(emailField, gbc);
+
+        gbc.gridy = 3;
+        gbc.gridx = 0;
+        card.add(passLabel, gbc);
+        gbc.gridx = 1;
+        card.add(passField, gbc);
+
+        JButton loginBtn = new JButton("Log In");
+        loginBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        loginBtn.setFocusPainted(false);
+
+        JLabel statusLabel = new JLabel(" ", SwingConstants.CENTER);
+        statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        statusLabel.setForeground(Color.DARK_GRAY);
 
         gbc.gridx = 0;
-        gbc.gridy++;
-        panel.add(passwordLabel, gbc);
-        gbc.gridx = 1;
-        panel.add(passwordField, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
+        gbc.gridy = 4;
         gbc.gridwidth = 2;
-        panel.add(loginButton, gbc);
+        card.add(loginBtn, gbc);
 
-        gbc.gridy++;
-        panel.add(statusLabel, gbc);
+        gbc.gridy = 5;
+        card.add(statusLabel, gbc);
 
-        loginButton.addActionListener(e -> {
+        Runnable performLogin = () -> {
             if (controller == null) {
                 showError("The controller has not been initialized.");
                 return;
             }
-
             String email = emailField.getText().trim();
-            String password = new String(passwordField.getPassword());
+            String password = new String(passField.getPassword());
 
             if (email.isEmpty() || password.isEmpty()) {
                 statusLabel.setText("Please enter both email and password.");
@@ -113,17 +206,17 @@ public class MainView {
             }
 
             boolean success = controller.login(email, password);
-
             if (success) {
                 User user = controller.getCurrentUser();
-
                 if (user == null) {
-                    showError("Login succeeded, but no user was returned.");
+                    showError("Login succeeded, but no user record returned.");
                     return;
                 }
+                statusLabel.setText(" ");
+                emailField.setText("");
+                passField.setText("");
 
                 String role = user.getRole();
-
                 if (AppConstants.ROLE_STUDENT.equals(role)) {
                     showStudentDashboard();
                 } else if (AppConstants.ROLE_VOLUNTEER.equals(role)) {
@@ -133,408 +226,1311 @@ public class MainView {
                 } else if (AppConstants.ROLE_ADMIN.equals(role)) {
                     showAdminPanel();
                 } else {
-                    showError("Unknown user role.");
+                    showError("Unknown user role: " + role);
                 }
             } else {
-                statusLabel.setText("Login failed. Please check your details.");
+                statusLabel.setText("Login failed: invalid credentials or deactivated account.");
             }
-        });
+        };
 
-        mainPanel.add(panel, "LOGIN");
+        loginBtn.addActionListener(e -> performLogin.run());
+        passField.addActionListener(e -> performLogin.run());
+
+        outer.add(card);
+        mainPanel.add(outer, "LOGIN");
         cardLayout.show(mainPanel, "LOGIN");
-        frame.setVisible(true);
+        if (frame != null) {
+            frame.setVisible(true);
+        }
     }
 
+    // =========================================================================
+    // 2. STUDENT DASHBOARD
+    // =========================================================================
 
-    /**
-     * Displays the student dashboard.
-     * TODO [Ananya Raju] – Implement student dashboard UI
-     */
-    
-    /**
-     * Displays the student dashboard.
-     * TODO [Ananya Raju] – Implement student dashboard UI
-     */
     public void showStudentDashboard() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        JPanel root = new JPanel(new BorderLayout());
+        root.add(createHeader(AppConstants.TITLE_STUDENT_DASHBOARD), BorderLayout.NORTH);
 
-        JLabel title = new JLabel(
-                AppConstants.TITLE_STUDENT_DASHBOARD,
-                SwingConstants.CENTER
-        );
-        title.setFont(new Font("Arial", Font.BOLD, 24));
-        panel.add(title, BorderLayout.NORTH);
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
-        JPanel buttonPanel = new JPanel(new GridLayout(0, 1, 10, 10));
+        // TAB 1: Resource Catalog & Borrowing
+        tabs.addTab("Resource Catalog", createStudentCatalogTab());
 
-        JButton resourcesButton = new JButton("Browse Resource Catalog");
-        resourcesButton.addActionListener(e -> showResourceCatalog());
+        // TAB 2: My Borrowed Items & Handover
+        tabs.addTab("My Borrowed Items & Handover", createStudentBorrowedTab());
 
-        JButton requestsButton = new JButton("View Requests");
-        requestsButton.addActionListener(e -> showRequestList());
+        // TAB 3: Campus Assistance & Emergency Help
+        tabs.addTab("Assistance & Emergencies", createStudentAssistanceTab());
 
-        JButton logoutButton = new JButton("Logout");
-        logoutButton.addActionListener(e -> {
-            if (controller != null) {
-                controller.logout();
-            }
-            showLoginScreen();
-        });
-
-        buttonPanel.add(resourcesButton);
-        buttonPanel.add(requestsButton);
-        buttonPanel.add(logoutButton);
-
-        panel.add(buttonPanel, BorderLayout.CENTER);
-
-        mainPanel.add(panel, "STUDENT_DASHBOARD");
+        root.add(tabs, BorderLayout.CENTER);
+        mainPanel.add(root, "STUDENT_DASHBOARD");
         cardLayout.show(mainPanel, "STUDENT_DASHBOARD");
     }
 
+    private JPanel createStudentCatalogTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-    /**
-     * Displays the volunteer dashboard.
-     * TODO [Ananya Raju]   – Implement volunteer dashboard UI
-     * TODO [Ashish K Biju] – Provide volunteer-specific data to populate the dashboard
-     */
-    
-    /**
-     * Displays the volunteer dashboard.
-     * TODO [Ananya Raju]   – Implement volunteer dashboard UI
-     * TODO [Ashish K Biju] – Provide volunteer-specific data to populate the dashboard
-     */
-    public void showVolunteerDashboard() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        // Search bar
+        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        JTextField searchField = new JTextField(18);
+        JComboBox<String> categoryCombo = new JComboBox<>(new String[]{
+                "All Categories", "Electronics", "Books", "Sports", "Lab Equipment"
+        });
+        JCheckBox availOnlyCheck = new JCheckBox("Available items only", false);
+        JButton searchBtn = new JButton(AppConstants.LABEL_SEARCH);
+        JButton resetBtn = new JButton("Reset");
 
-        JLabel title = new JLabel(
-                AppConstants.TITLE_VOLUNTEER_DASHBOARD,
-                SwingConstants.CENTER
-        );
-        title.setFont(new Font("Arial", Font.BOLD, 24));
-        panel.add(title, BorderLayout.NORTH);
+        filterBar.add(new JLabel("Search:"));
+        filterBar.add(searchField);
+        filterBar.add(new JLabel("Category:"));
+        filterBar.add(categoryCombo);
+        filterBar.add(availOnlyCheck);
+        filterBar.add(searchBtn);
+        filterBar.add(resetBtn);
 
-        JLabel message = new JLabel(
-                "Welcome to your volunteer dashboard.",
-                SwingConstants.CENTER
-        );
-        panel.add(message, BorderLayout.CENTER);
+        panel.add(filterBar, BorderLayout.NORTH);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout());
+        // Table
+        String[] cols = {"Resource ID", "Name", "Category", "Available Qty", "Status", "Owner ID"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleTable(table);
 
-        JButton requestsButton = new JButton("View Requests");
-        requestsButton.addActionListener(e -> showRequestList());
+        Runnable refreshCatalog = () -> {
+            model.setRowCount(0);
+            if (controller == null) return;
+            String kw = searchField.getText().trim();
+            String cat = (String) categoryCombo.getSelectedItem();
+            boolean availOnly = availOnlyCheck.isSelected();
 
-        JButton resourcesButton = new JButton("Resource Catalog");
-        resourcesButton.addActionListener(e -> showResourceCatalog());
-
-        JButton logoutButton = new JButton(AppConstants.LABEL_LOGOUT);
-        logoutButton.addActionListener(e -> {
-            if (controller != null) {
-                controller.logout();
+            List<Resource> list;
+            if (cat != null && !cat.equals("All Categories")) {
+                list = controller.getResourceService().searchResources(kw, cat, availOnly);
+            } else if (!kw.isEmpty()) {
+                list = controller.searchResources(kw);
+            } else {
+                list = controller.getResourceCatalog();
             }
-            showLoginScreen();
+
+            for (Resource r : list) {
+                if (availOnly && !AppConstants.RESOURCE_STATUS_AVAILABLE.equals(r.getStatus())) {
+                    continue;
+                }
+                model.addRow(new Object[]{
+                        r.getResourceId(),
+                        r.getResourceName(),
+                        r.getCategory(),
+                        r.getQuantity(),
+                        r.getStatus(),
+                        r.getOwnerId()
+                });
+            }
+        };
+
+        searchBtn.addActionListener(e -> refreshCatalog.run());
+        resetBtn.addActionListener(e -> {
+            searchField.setText("");
+            categoryCombo.setSelectedIndex(0);
+            availOnlyCheck.setSelected(false);
+            refreshCatalog.run();
         });
 
-        buttonPanel.add(requestsButton);
-        buttonPanel.add(resourcesButton);
-        buttonPanel.add(logoutButton);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        panel.add(buttonPanel, BorderLayout.SOUTH);
+        // Bottom Action Panel
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton borrowBtn = new JButton("Request to Borrow Selected Item");
+        borrowBtn.setFocusPainted(false);
 
-        mainPanel.add(panel, "VOLUNTEER_DASHBOARD");
+        borrowBtn.addActionListener(e -> {
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow == -1) {
+                showMessage("Please select a resource from the catalog to borrow.");
+                return;
+            }
+            String resId = (String) model.getValueAt(selectedRow, 0);
+            String resName = (String) model.getValueAt(selectedRow, 1);
+            int qty = (int) model.getValueAt(selectedRow, 3);
+
+            if (qty <= 0) {
+                showError("'" + resName + "' is currently out of stock.");
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(
+                    frame,
+                    "Submit borrow request for: " + resName + " (" + resId + ")?",
+                    "Confirm Borrow Request",
+                    JOptionPane.YES_NO_OPTION
+            );
+            if (confirm == JOptionPane.YES_OPTION) {
+                User current = controller.getCurrentUser();
+                ResourceRequest req = controller.getRequestService().submitRequest(current.getUserId(), resId);
+                if (req != null) {
+                    showMessage("Borrow request submitted successfully!\n\n"
+                            + "Request ID: " + req.getRequestId() + "\n"
+                            + "Resource: " + resName + " (" + resId + ")\n"
+                            + "Status: PENDING Staff Approval\n\n"
+                            + "Track status and complete handover under 'My Borrowed Items & Handover'.");
+                    refreshCatalog.run();
+                } else {
+                    Resource r = controller.getResourceService().findById(resId);
+                    if (r != null && current.getUserId().equals(r.getOwnerId())) {
+                        showError("You cannot borrow a resource you own.");
+                    } else {
+                        showError("Could not submit borrow request. The item may no longer be available.");
+                    }
+                }
+            }
+        });
+
+        actionPanel.add(borrowBtn);
+        panel.add(actionPanel, BorderLayout.SOUTH);
+
+        refreshCatalog.run();
+        return panel;
+    }
+
+    private JPanel createStudentBorrowedTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JPanel topBar = new JPanel(new BorderLayout());
+        JLabel info = new JLabel("Your borrow requests and active items. When staff approves, enter the 4-digit OTP code below to collect.");
+        info.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        JButton refreshBtn = new JButton("Refresh List");
+        topBar.add(info, BorderLayout.WEST);
+        topBar.add(refreshBtn, BorderLayout.EAST);
+        panel.add(topBar, BorderLayout.NORTH);
+
+        String[] cols = {"Request ID", "Resource ID", "Item Name", "Category", "Status", "Handover / Next Step"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleTable(table);
+
+        Runnable refreshBorrowed = () -> {
+            model.setRowCount(0);
+            if (controller == null) return;
+            User current = controller.getCurrentUser();
+            if (current == null) return;
+
+            List<ResourceRequest> all = controller.getRequestService().getAllRequests();
+            for (ResourceRequest req : all) {
+                if (current.getUserId().equals(req.getRequesterId())) {
+                    Resource r = controller.getResourceService().findById(req.getResourceId());
+                    String resName = (r != null) ? r.getResourceName() : "Unknown Item";
+                    String category = (r != null) ? r.getCategory() : "-";
+                    String status = req.getStatus();
+                    String nextStep;
+                    if (ResourceRequest.STATUS_PENDING.equals(status)) {
+                        nextStep = "Pending Staff Approval";
+                    } else if (ResourceRequest.STATUS_ACCEPTED.equals(status)) {
+                        nextStep = "Approved! Enter OTP below to collect";
+                    } else if (ResourceRequest.STATUS_COMPLETED.equals(status)) {
+                        nextStep = "In Possession (Ready to return)";
+                    } else if (ResourceRequest.STATUS_DECLINED.equals(status)) {
+                        nextStep = "Declined by Staff";
+                    } else if (ResourceRequest.STATUS_CANCELLED.equals(status)) {
+                        nextStep = "Cancelled";
+                    } else if ("RETURNED".equals(status)) {
+                        nextStep = "Item Returned";
+                    } else {
+                        nextStep = status;
+                    }
+
+                    model.addRow(new Object[]{
+                            req.getRequestId(),
+                            req.getResourceId(),
+                            resName,
+                            category,
+                            status,
+                            nextStep
+                    });
+                }
+            }
+        };
+
+        refreshBtn.addActionListener(e -> refreshBorrowed.run());
+
+        // Automatically refresh when this tab is selected/shown
+        panel.addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && panel.isShowing()) {
+                refreshBorrowed.run();
+            }
+        });
+
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        // Bottom action controls: Handover Verify + Return / Cancel
+        JPanel bottom = new JPanel(new GridLayout(2, 1, 6, 6));
+
+        JPanel handoverPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        handoverPanel.setBorder(BorderFactory.createTitledBorder("Handover Code Verification (OTP)"));
+        JTextField reqIdField = new JTextField(8);
+        JTextField codeField = new JTextField(8);
+        JButton verifyCodeBtn = new JButton("Verify Handover Code");
+
+        // Selecting a row in the table automatically fills the Request ID
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                int row = table.getSelectedRow();
+                if (row != -1) {
+                    reqIdField.setText((String) model.getValueAt(row, 0));
+                }
+            }
+        });
+
+        verifyCodeBtn.addActionListener(e -> {
+            String qId = reqIdField.getText().trim();
+            String code = codeField.getText().trim();
+            if (qId.isEmpty() || code.isEmpty()) {
+                showError("Please enter both Request ID (e.g. Q1) and the 4-digit code.");
+                return;
+            }
+            User u = controller.getCurrentUser();
+            ResourceRequest req = controller.getRequestService().findRequest(qId);
+            if (req == null) {
+                showError("Request '" + qId + "' not found.");
+                return;
+            }
+            if (!u.getUserId().equals(req.getRequesterId())) {
+                showError("Request '" + qId + "' does not belong to you.");
+                return;
+            }
+            if (ResourceRequest.STATUS_COMPLETED.equals(req.getStatus())) {
+                showMessage("This request has already been completed. Item is in your possession.");
+                return;
+            }
+            if (!ResourceRequest.STATUS_ACCEPTED.equals(req.getStatus())) {
+                showError("Request is not approved by staff yet. Current status: " + req.getStatus());
+                return;
+            }
+
+            boolean verified = controller.getHandoverService().verify(qId, u.getUserId(), code);
+            if (verified) {
+                showMessage("Handover verified successfully!\nItem officially transferred. It is now in your possession.");
+                codeField.setText("");
+                reqIdField.setText("");
+                refreshBorrowed.run();
+            } else {
+                showError("Handover verification failed.\nPlease ensure the 4-digit code provided by staff is correct.");
+            }
+        });
+
+        handoverPanel.add(new JLabel("Request ID:"));
+        handoverPanel.add(reqIdField);
+        handoverPanel.add(new JLabel("4-Digit Code:"));
+        handoverPanel.add(codeField);
+        handoverPanel.add(verifyCodeBtn);
+
+        JPanel returnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
+        JButton cancelBtn = new JButton("Cancel Selected Request");
+        JButton returnBtn = new JButton("Return Selected Resource");
+
+        cancelBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) {
+                showMessage("Select a request to cancel.");
+                return;
+            }
+            String qId = (String) model.getValueAt(row, 0);
+            String status = (String) model.getValueAt(row, 4);
+            if (!ResourceRequest.STATUS_PENDING.equals(status) && !ResourceRequest.STATUS_ACCEPTED.equals(status)) {
+                showError("Cannot cancel request with status: " + status);
+                return;
+            }
+            User u = controller.getCurrentUser();
+            boolean ok = controller.getRequestService().cancel(qId, u.getUserId());
+            if (ok) {
+                showMessage("Request " + qId + " has been cancelled.");
+                refreshBorrowed.run();
+            } else {
+                showError("Failed to cancel request " + qId + ".");
+            }
+        });
+
+        returnBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) {
+                showMessage("Select a resource to return.");
+                return;
+            }
+            String qId = (String) model.getValueAt(row, 0);
+            String rId = (String) model.getValueAt(row, 1);
+            String rName = (String) model.getValueAt(row, 2);
+            String status = (String) model.getValueAt(row, 4);
+
+            if (!ResourceRequest.STATUS_COMPLETED.equals(status)) {
+                showError("Only items currently in your possession (Status: COMPLETED) can be returned.\nCurrent status: " + status);
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(
+                    frame,
+                    "Return item '" + rName + "' (" + rId + ")?",
+                    "Confirm Return",
+                    JOptionPane.YES_NO_OPTION
+            );
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
+
+            User u = controller.getCurrentUser();
+            boolean ok = controller.returnResource(rId, u.getUserId());
+            if (ok) {
+                ResourceRequest req = controller.getRequestService().findRequest(qId);
+                if (req != null) {
+                    req.setStatus("RETURNED");
+                }
+                showMessage("Successfully returned '" + rName + "'. Inventory restored.");
+                refreshBorrowed.run();
+            } else {
+                showError("Failed to return resource.");
+            }
+        });
+
+        returnPanel.add(cancelBtn);
+        returnPanel.add(returnBtn);
+
+        bottom.add(handoverPanel);
+        bottom.add(returnPanel);
+        panel.add(bottom, BorderLayout.SOUTH);
+
+        refreshBorrowed.run();
+        return panel;
+    }
+
+    private JPanel createStudentAssistanceTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        // Form
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBorder(BorderFactory.createTitledBorder("Create New Assistance or Emergency Request"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(4, 4, 4, 4);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JComboBox<String> typeCombo = new JComboBox<>(new String[]{
+                AppConstants.REQUEST_TYPE_GENERAL, AppConstants.REQUEST_TYPE_EMERGENCY
+        });
+        JComboBox<String> skillCombo = new JComboBox<>(new String[]{
+                "None", "First Aid", "Lab Assistant", "Tutoring", "Heavy Lifting", "Technical Support"
+        });
+        JTextField descField = new JTextField(25);
+        JButton submitBtn = new JButton("Submit Request");
+
+        gbc.gridx = 0; gbc.gridy = 0;
+        form.add(new JLabel("Request Type:"), gbc);
+        gbc.gridx = 1;
+        form.add(typeCombo, gbc);
+
+        gbc.gridx = 2;
+        form.add(new JLabel("Required Skill:"), gbc);
+        gbc.gridx = 3;
+        form.add(skillCombo, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 1;
+        form.add(new JLabel("Description:"), gbc);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        form.add(descField, gbc);
+
+        gbc.gridx = 3; gbc.gridwidth = 1;
+        form.add(submitBtn, gbc);
+
+        panel.add(form, BorderLayout.NORTH);
+
+        // Requests Table
+        String[] cols = {"Request ID", "Type", "Description", "Required Skill", "Volunteer Assigned", "Status", "Created At"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleTable(table);
+
+        Runnable refreshRequests = () -> {
+            model.setRowCount(0);
+            if (controller == null) return;
+            User u = controller.getCurrentUser();
+            for (Request req : controller.getRequests()) {
+                if (u != null && u.getUserId().equals(req.getRequesterId())) {
+                    model.addRow(new Object[]{
+                            req.getRequestId(),
+                            req.getRequestType(),
+                            req.getDescription(),
+                            req.getRequiredSkill() != null ? req.getRequiredSkill() : "None",
+                            req.getAssignedVolunteerId() != null ? req.getAssignedVolunteerId() : "Unassigned",
+                            req.getStatus(),
+                            req.getCreatedAt()
+                    });
+                }
+            }
+        };
+
+        submitBtn.addActionListener(e -> {
+            String desc = descField.getText().trim();
+            if (desc.isEmpty()) {
+                showError("Please describe the assistance needed.");
+                return;
+            }
+            String type = (String) typeCombo.getSelectedItem();
+            String skill = (String) skillCombo.getSelectedItem();
+            if ("None".equals(skill)) skill = null;
+
+            User u = controller.getCurrentUser();
+            Request req = controller.createRequest(type, u.getUserId(), desc, skill);
+            if (req != null) {
+                if (AppConstants.REQUEST_TYPE_EMERGENCY.equals(type)) {
+                    showMessage("Emergency request created: " + req.getRequestId() + "\nSystem dispatched priority volunteer matching.");
+                } else {
+                    showMessage("Request submitted successfully: " + req.getRequestId());
+                }
+                descField.setText("");
+                refreshRequests.run();
+            } else {
+                showError("Failed to submit request.");
+            }
+        });
+
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton cancelReqBtn = new JButton("Cancel Selected Request");
+        cancelReqBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) {
+                showMessage("Select a request to cancel.");
+                return;
+            }
+            String reqId = (String) model.getValueAt(row, 0);
+            controller.updateRequestStatus(reqId, AppConstants.REQUEST_STATUS_CANCELLED);
+            showMessage("Request " + reqId + " cancelled.");
+            refreshRequests.run();
+        });
+        bottom.add(cancelReqBtn);
+        panel.add(bottom, BorderLayout.SOUTH);
+
+        refreshRequests.run();
+        return panel;
+    }
+
+    // =========================================================================
+    // 3. VOLUNTEER DASHBOARD
+    // =========================================================================
+
+    public void showVolunteerDashboard() {
+        JPanel root = new JPanel(new BorderLayout());
+
+        User currentUser = controller != null ? controller.getCurrentUser() : null;
+        Volunteer vol = controller != null && currentUser != null
+                ? controller.getVolunteerByUserId(currentUser.getUserId())
+                : null;
+
+        // Top Status Bar: Availability status + current skills
+        JPanel statusBanner = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 6));
+        statusBanner.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 225)));
+
+        JLabel availLabel = new JLabel("Your Availability:");
+        availLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+        JComboBox<String> availCombo = new JComboBox<>(new String[]{
+                AppConstants.VOLUNTEER_AVAILABLE, AppConstants.VOLUNTEER_BUSY, AppConstants.VOLUNTEER_UNAVAILABLE
+        });
+        if (vol != null && vol.getAvailabilityStatus() != null) {
+            availCombo.setSelectedItem(vol.getAvailabilityStatus());
+        }
+
+        availCombo.addActionListener(e -> {
+            if (vol != null) {
+                vol.setAvailabilityStatus((String) availCombo.getSelectedItem());
+                showMessage("Availability updated to " + vol.getAvailabilityStatus());
+            }
+        });
+
+        JLabel skillsLabel = new JLabel(vol != null ? "Skills: " + vol.getSkills() : "Skills: None");
+        skillsLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        statusBanner.add(availLabel);
+        statusBanner.add(availCombo);
+        statusBanner.add(Box.createHorizontalStrut(20));
+        statusBanner.add(skillsLabel);
+
+        // Combine header with status banner in North section
+        JPanel topContainer = new JPanel(new BorderLayout());
+        topContainer.add(createHeader(AppConstants.TITLE_VOLUNTEER_DASHBOARD), BorderLayout.NORTH);
+        topContainer.add(statusBanner, BorderLayout.SOUTH);
+        root.add(topContainer, BorderLayout.NORTH);
+
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.setFont(new Font("SansSerif", Font.PLAIN, 13));
+
+        // TAB 1: Assigned Tasks
+        tabs.addTab("Assigned Tasks", createVolunteerAssignedTab(vol));
+
+        // TAB 2: Open Requests Queue
+        tabs.addTab("Open Requests Queue", createVolunteerQueueTab(vol));
+
+        // TAB 3: Volunteer Skills Profile
+        tabs.addTab("Skills & Profile", createVolunteerSkillsTab(vol, skillsLabel));
+
+        root.add(tabs, BorderLayout.CENTER);
+        mainPanel.add(root, "VOLUNTEER_DASHBOARD");
         cardLayout.show(mainPanel, "VOLUNTEER_DASHBOARD");
     }
 
+    private JPanel createVolunteerAssignedTab(Volunteer vol) {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-    /**
-     * Displays the staff dashboard.
-     * TODO [Ananya Raju]     – Implement staff dashboard UI
-     * TODO [Ardra K Gireesh] – Provide resource catalog data to populate the dashboard
-     */
-    
-    /**
-     * Displays the staff dashboard.
-     * TODO [Ananya Raju]     – Implement staff dashboard UI
-     * TODO [Ardra K Gireesh] – Provide resource catalog data to populate the dashboard
-     */
-    public void showStaffDashboard() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        String[] cols = {"Request ID", "Type", "Requester ID", "Description", "Skill Required", "Status", "Created At"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleTable(table);
 
-        JLabel title = new JLabel(
-                AppConstants.TITLE_STAFF_DASHBOARD,
-                SwingConstants.CENTER
-        );
-        title.setFont(new Font("Arial", Font.BOLD, 24));
-        panel.add(title, BorderLayout.NORTH);
-
-        JLabel message = new JLabel(
-                "Welcome to your staff dashboard.",
-                SwingConstants.CENTER
-        );
-        panel.add(message, BorderLayout.CENTER);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-
-        JButton resourcesButton = new JButton("Resource Catalog");
-        resourcesButton.addActionListener(e -> showResourceCatalog());
-
-        JButton requestsButton = new JButton("View Requests");
-        requestsButton.addActionListener(e -> showRequestList());
-
-        JButton logoutButton = new JButton(AppConstants.LABEL_LOGOUT);
-        logoutButton.addActionListener(e -> {
-            if (controller != null) {
-                controller.logout();
+        Runnable refreshAssigned = () -> {
+            model.setRowCount(0);
+            if (controller == null || vol == null) return;
+            for (Request r : controller.getRequests()) {
+                if (vol.getVolunteerId().equals(r.getAssignedVolunteerId())) {
+                    model.addRow(new Object[]{
+                            r.getRequestId(),
+                            r.getRequestType(),
+                            r.getRequesterId(),
+                            r.getDescription(),
+                            r.getRequiredSkill() != null ? r.getRequiredSkill() : "None",
+                            r.getStatus(),
+                            r.getCreatedAt()
+                    });
+                }
             }
-            showLoginScreen();
+        };
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton resolveBtn = new JButton("Mark Task as Resolved");
+        resolveBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) {
+                showMessage("Select a task to resolve.");
+                return;
+            }
+            String rId = (String) model.getValueAt(row, 0);
+            controller.updateRequestStatus(rId, AppConstants.REQUEST_STATUS_RESOLVED);
+            showMessage("Task " + rId + " marked as Resolved.");
+            refreshAssigned.run();
         });
 
-        buttonPanel.add(resourcesButton);
-        buttonPanel.add(requestsButton);
-        buttonPanel.add(logoutButton);
+        actions.add(resolveBtn);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        panel.add(actions, BorderLayout.SOUTH);
 
-        panel.add(buttonPanel, BorderLayout.SOUTH);
+        refreshAssigned.run();
+        return panel;
+    }
 
-        mainPanel.add(panel, "STAFF_DASHBOARD");
+    private JPanel createVolunteerQueueTab(Volunteer vol) {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        String[] cols = {"Request ID", "Priority / Type", "Requester ID", "Description", "Required Skill", "Status", "Created At"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleTable(table);
+
+        Runnable refreshQueue = () -> {
+            model.setRowCount(0);
+            if (controller == null) return;
+            for (Request r : controller.getRequestsByPriority()) {
+                if (AppConstants.REQUEST_STATUS_OPEN.equals(r.getStatus())) {
+                    String typeDisplay = AppConstants.REQUEST_TYPE_EMERGENCY.equals(r.getRequestType())
+                            ? "[EMERGENCY] " + r.getRequestType()
+                            : r.getRequestType();
+                    model.addRow(new Object[]{
+                            r.getRequestId(),
+                            typeDisplay,
+                            r.getRequesterId(),
+                            r.getDescription(),
+                            r.getRequiredSkill() != null ? r.getRequiredSkill() : "None",
+                            r.getStatus(),
+                            r.getCreatedAt()
+                    });
+                }
+            }
+        };
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton assignMeBtn = new JButton("Self-Assign Selected Task");
+
+        assignMeBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) {
+                showMessage("Select an open task from the queue to accept.");
+                return;
+            }
+            if (vol == null) {
+                showError("Volunteer profile not initialized.");
+                return;
+            }
+            String rId = (String) model.getValueAt(row, 0);
+            boolean ok = controller.assignVolunteer(rId, vol.getVolunteerId());
+            if (ok) {
+                showMessage("Assigned task " + rId + " to you.");
+                refreshQueue.run();
+            } else {
+                showError("Could not assign task (you may be BUSY, or task was already assigned).");
+            }
+        });
+
+        actions.add(assignMeBtn);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        panel.add(actions, BorderLayout.SOUTH);
+
+        refreshQueue.run();
+        return panel;
+    }
+
+    private JPanel createVolunteerSkillsTab(Volunteer vol, JLabel skillsBadge) {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(new EmptyBorder(15, 15, 15, 15));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JLabel title = new JLabel("Volunteer Qualifications & Skills");
+        title.setFont(new Font("SansSerif", Font.BOLD, 16));
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        panel.add(title, gbc);
+
+        JTextArea skillDisplay = new JTextArea(4, 30);
+        skillDisplay.setEditable(false);
+        skillDisplay.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        if (vol != null) {
+            skillDisplay.setText(String.join("\n - ", vol.getSkills()));
+        }
+        gbc.gridy = 1;
+        panel.add(new JScrollPane(skillDisplay), gbc);
+
+        JTextField addSkillField = new JTextField(15);
+        JButton addSkillBtn = new JButton("Add Skill");
+
+        addSkillBtn.addActionListener(e -> {
+            String sk = addSkillField.getText().trim();
+            if (!sk.isEmpty() && vol != null) {
+                vol.addSkill(sk);
+                addSkillField.setText("");
+                skillDisplay.setText(" - " + String.join("\n - ", vol.getSkills()));
+                skillsBadge.setText("Skills: " + vol.getSkills());
+                showMessage("Skill '" + sk + "' added.");
+            }
+        });
+
+        JPanel inputRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        inputRow.add(new JLabel("New Skill:"));
+        inputRow.add(addSkillField);
+        inputRow.add(addSkillBtn);
+
+        gbc.gridy = 2;
+        panel.add(inputRow, gbc);
+
+        return panel;
+    }
+
+    // =========================================================================
+    // 4. STAFF DASHBOARD
+    // =========================================================================
+
+    public void showStaffDashboard() {
+        JPanel root = new JPanel(new BorderLayout());
+        root.add(createHeader(AppConstants.TITLE_STAFF_DASHBOARD), BorderLayout.NORTH);
+
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.setFont(new Font("SansSerif", Font.PLAIN, 13));
+
+        // TAB 1: Resource Management (Inventory)
+        tabs.addTab("Resource Inventory", createStaffInventoryTab());
+
+        // TAB 2: Borrow Approvals & Handover Codes
+        tabs.addTab("Borrow Requests & Handovers", createStaffHandoversTab());
+
+        // TAB 3: Campus Activity
+        tabs.addTab("Campus Activity", createStaffActivityTab());
+
+        root.add(tabs, BorderLayout.CENTER);
+        mainPanel.add(root, "STAFF_DASHBOARD");
         cardLayout.show(mainPanel, "STAFF_DASHBOARD");
     }
 
+    private JPanel createStaffInventoryTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-    /**
-     * Displays the admin panel.
-     * TODO [Ananya Raju] – Implement admin panel UI
-     * TODO [Alan Saji]   – Provide admin-specific data and actions
-     */
-    
-    /**
-     * Displays the admin panel.
-     * TODO [Ananya Raju] – Implement admin panel UI
-     * TODO [Alan Saji]   – Provide admin-specific data and actions
-     */
+        String[] cols = {"ID", "Name", "Category", "Quantity", "Status", "Owner ID"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleTable(table);
+
+        Runnable refreshInventory = () -> {
+            model.setRowCount(0);
+            if (controller == null) return;
+            for (Resource r : controller.getResourceCatalog()) {
+                model.addRow(new Object[]{
+                        r.getResourceId(),
+                        r.getResourceName(),
+                        r.getCategory(),
+                        r.getQuantity(),
+                        r.getStatus(),
+                        r.getOwnerId()
+                });
+            }
+        };
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton addBtn = new JButton("+ Add New Resource");
+
+        addBtn.addActionListener(e -> {
+            JTextField idField = new JTextField("RES-" + (controller.getResourceCatalog().size() + 1));
+            JTextField nameField = new JTextField(15);
+            JTextField catField = new JTextField("Electronics");
+            JTextField descField = new JTextField(15);
+            JSpinner qtySpinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+
+            JPanel form = new JPanel(new GridLayout(5, 2, 4, 4));
+            form.add(new JLabel("Resource ID:")); form.add(idField);
+            form.add(new JLabel("Name:")); form.add(nameField);
+            form.add(new JLabel("Category:")); form.add(catField);
+            form.add(new JLabel("Description:")); form.add(descField);
+            form.add(new JLabel("Quantity:")); form.add(qtySpinner);
+
+            int result = JOptionPane.showConfirmDialog(frame, form, "Add New Resource", JOptionPane.OK_CANCEL_OPTION);
+            if (result == JOptionPane.OK_OPTION) {
+                String id = idField.getText().trim();
+                String name = nameField.getText().trim();
+                String cat = catField.getText().trim();
+                int qty = (int) qtySpinner.getValue();
+                if (id.isEmpty() || name.isEmpty()) {
+                    showError("ID and Name are required.");
+                    return;
+                }
+                User current = controller.getCurrentUser();
+                Resource res = new Resource(id, name, descField.getText().trim(), cat,
+                        current.getUserId(), qty, AppConstants.RESOURCE_STATUS_AVAILABLE);
+                controller.addResource(res);
+                showMessage("Resource '" + name + "' added successfully.");
+                refreshInventory.run();
+            }
+        });
+
+        actions.add(addBtn);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        panel.add(actions, BorderLayout.SOUTH);
+
+        refreshInventory.run();
+        return panel;
+    }
+
+    private JPanel createStaffHandoversTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JPanel topBar = new JPanel(new BorderLayout());
+        JLabel info = new JLabel("Approve borrow requests and generate 4-digit handover codes for students.");
+        info.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        JButton refreshBtn = new JButton("Refresh Requests");
+        topBar.add(info, BorderLayout.WEST);
+        topBar.add(refreshBtn, BorderLayout.EAST);
+        panel.add(topBar, BorderLayout.NORTH);
+
+        String[] cols = {"Request ID", "Resource ID", "Item Name", "Requester ID", "Owner ID", "Status"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleTable(table);
+
+        Runnable refreshRequests = () -> {
+            model.setRowCount(0);
+            if (controller == null) return;
+            for (ResourceRequest req : controller.getRequestService().getAllRequests()) {
+                Resource r = controller.getResourceService().findById(req.getResourceId());
+                String resName = (r != null) ? r.getResourceName() : "Unknown Item";
+                String ownerId = (r != null) ? r.getOwnerId() : "-";
+                model.addRow(new Object[]{
+                        req.getRequestId(),
+                        req.getResourceId(),
+                        resName,
+                        req.getRequesterId(),
+                        ownerId,
+                        req.getStatus()
+                });
+            }
+        };
+
+        refreshBtn.addActionListener(e -> refreshRequests.run());
+
+        panel.addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && panel.isShowing()) {
+                refreshRequests.run();
+            }
+        });
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
+        JButton declineBtn = new JButton("Decline Request");
+        JButton approveBtn = new JButton("Approve & Generate Handover Code");
+
+        approveBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) {
+                showMessage("Select a borrow request from the table.");
+                return;
+            }
+            String qId = (String) model.getValueAt(row, 0);
+            User current = controller.getCurrentUser();
+            ResourceRequest req = controller.getRequestService().findRequest(qId);
+            if (req == null) {
+                showError("Request not found.");
+                return;
+            }
+            Resource r = controller.getResourceService().findById(req.getResourceId());
+            if (r == null || !r.getOwnerId().equals(current.getUserId())) {
+                showError("Only the resource owner (" + (r != null ? r.getOwnerId() : "N/A") + ") can approve this request.");
+                return;
+            }
+
+            if (ResourceRequest.STATUS_PENDING.equals(req.getStatus())) {
+                boolean accepted = controller.getRequestService().accept(qId, current.getUserId());
+                if (!accepted) {
+                    showError("Could not accept request. The resource may no longer have available units.");
+                    return;
+                }
+            } else if (!ResourceRequest.STATUS_ACCEPTED.equals(req.getStatus())) {
+                showError("Cannot generate handover code for request with status: " + req.getStatus());
+                return;
+            }
+
+            String code = controller.getHandoverService().generateCode(qId, current.getUserId());
+            if (code != null) {
+                JOptionPane.showMessageDialog(
+                        frame,
+                        "Request " + qId + " is APPROVED.\n\n4-Digit Handover Code for Student: " + code + "\n\nGive this code to the student to verify and collect the item.",
+                        "Handover Code Generated",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+                refreshRequests.run();
+            } else {
+                showError("Failed to generate handover code.");
+            }
+        });
+
+        declineBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) {
+                showMessage("Select a borrow request from the table to decline.");
+                return;
+            }
+            String qId = (String) model.getValueAt(row, 0);
+            User current = controller.getCurrentUser();
+            boolean declined = controller.getRequestService().decline(qId, current.getUserId());
+            if (declined) {
+                showMessage("Request " + qId + " has been declined.");
+                refreshRequests.run();
+            } else {
+                showError("Could not decline request (must be owner and status must be PENDING).");
+            }
+        });
+
+        actions.add(declineBtn);
+        actions.add(approveBtn);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        panel.add(actions, BorderLayout.SOUTH);
+
+        refreshRequests.run();
+        return panel;
+    }
+
+    private JPanel createStaffActivityTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        String[] cols = {"Request ID", "Type", "Requester ID", "Description", "Assigned Volunteer", "Status", "Date"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleTable(table);
+
+        if (controller != null) {
+            for (Request r : controller.getRequests()) {
+                model.addRow(new Object[]{
+                        r.getRequestId(),
+                        r.getRequestType(),
+                        r.getRequesterId(),
+                        r.getDescription(),
+                        r.getAssignedVolunteerId() != null ? r.getAssignedVolunteerId() : "None",
+                        r.getStatus(),
+                        r.getCreatedAt()
+                });
+            }
+        }
+
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        return panel;
+    }
+
+    // =========================================================================
+    // 5. ADMIN PANEL
+    // =========================================================================
+
     public void showAdminPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        JPanel root = new JPanel(new BorderLayout());
+        root.add(createHeader(AppConstants.TITLE_ADMIN_PANEL), BorderLayout.NORTH);
 
-        JLabel title = new JLabel(
-                AppConstants.TITLE_ADMIN_PANEL,
-                SwingConstants.CENTER
-        );
-        title.setFont(new Font("Arial", Font.BOLD, 24));
-        panel.add(title, BorderLayout.NORTH);
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
-        JLabel message = new JLabel(
-                "Welcome to the Admin Panel.",
-                SwingConstants.CENTER
-        );
-        panel.add(message, BorderLayout.CENTER);
+        // TAB 1: User Management (SQLite Persisted)
+        tabs.addTab("User Management", createAdminUserManagementTab());
 
-        JPanel buttonPanel = new JPanel(new FlowLayout());
+        // TAB 2: System Statistics (List View - Minimalist)
+        tabs.addTab("System Statistics", createAdminStatsTab());
 
-        JButton resourcesButton = new JButton("Resource Catalog");
-        resourcesButton.addActionListener(e -> showResourceCatalog());
+        // TAB 3: Global System Oversight
+        tabs.addTab("System Oversight", createAdminOversightTab());
 
-        JButton requestsButton = new JButton("View Requests");
-        requestsButton.addActionListener(e -> showRequestList());
-
-        JButton logoutButton = new JButton(AppConstants.LABEL_LOGOUT);
-        logoutButton.addActionListener(e -> {
-            if (controller != null) {
-                controller.logout();
-            }
-            showLoginScreen();
-        });
-
-        buttonPanel.add(resourcesButton);
-        buttonPanel.add(requestsButton);
-        buttonPanel.add(logoutButton);
-
-        panel.add(buttonPanel, BorderLayout.SOUTH);
-
-        mainPanel.add(panel, "ADMIN_PANEL");
+        root.add(tabs, BorderLayout.CENTER);
+        mainPanel.add(root, "ADMIN_PANEL");
         cardLayout.show(mainPanel, "ADMIN_PANEL");
-
-        // Original placeholder:
-        // System.out.println("[MainView] showAdminPanel() — not yet implemented");
     }
 
+    private JPanel createAdminUserManagementTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        // Filter Bar
+        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        JComboBox<String> roleFilter = new JComboBox<>(new String[]{"ALL ROLES", "STUDENT", "STAFF", "VOLUNTEER", "ADMIN"});
+        JButton refreshBtn = new JButton("Refresh Users");
+
+        filterBar.add(new JLabel("Filter by Role:"));
+        filterBar.add(roleFilter);
+        filterBar.add(refreshBtn);
+
+        panel.add(filterBar, BorderLayout.NORTH);
+
+        // Table
+        String[] cols = {"User ID", "Name", "Email", "Phone", "Role", "Active Status"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleTable(table);
+
+        Runnable refreshUsers = () -> {
+            model.setRowCount(0);
+            if (controller == null) return;
+            String selRole = (String) roleFilter.getSelectedItem();
+            List<User> users = controller.getAllUsers();
+            for (User u : users) {
+                if (selRole != null && !selRole.equals("ALL ROLES") && !selRole.equalsIgnoreCase(u.getRole())) {
+                    continue;
+                }
+                boolean active = controller.login(u.getEmail(), u.getPassword());
+                model.addRow(new Object[]{
+                        u.getUserId(),
+                        u.getName(),
+                        u.getEmail(),
+                        u.getPhone(),
+                        u.getRole(),
+                        active ? "ACTIVE" : "DEACTIVATED"
+                });
+            }
+        };
+
+        refreshBtn.addActionListener(e -> refreshUsers.run());
+        roleFilter.addActionListener(e -> refreshUsers.run());
+
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        // Actions: Activate & Deactivate User
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton activateBtn = new JButton("Activate Selected User");
+        activateBtn.setFocusPainted(false);
+
+        activateBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) {
+                showMessage("Please select a user to activate.");
+                return;
+            }
+            String userId = (String) model.getValueAt(row, 0);
+            String name = (String) model.getValueAt(row, 1);
+            String status = (String) model.getValueAt(row, 5);
+
+            if ("ACTIVE".equalsIgnoreCase(status)) {
+                showMessage("User " + name + " (" + userId + ") is already active.");
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(
+                    frame,
+                    "Activate account for: " + name + " (" + userId + ")?\nThis will allow them to log in again.",
+                    "Confirm Activation",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+            );
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                controller.activateUser(userId);
+                showMessage("User " + name + " (" + userId + ") has been activated successfully.");
+                refreshUsers.run();
+            }
+        });
+
+        JButton deactBtn = new JButton("Deactivate Selected User");
+        deactBtn.setFocusPainted(false);
+
+        deactBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) {
+                showMessage("Please select a user to deactivate.");
+                return;
+            }
+            String userId = (String) model.getValueAt(row, 0);
+            String name = (String) model.getValueAt(row, 1);
+            String role = (String) model.getValueAt(row, 4);
+            String status = (String) model.getValueAt(row, 5);
+
+            if ("DEACTIVATED".equalsIgnoreCase(status)) {
+                showMessage("User " + name + " (" + userId + ") is already deactivated.");
+                return;
+            }
+
+            if ("ADMIN".equalsIgnoreCase(role)) {
+                showError("Admin accounts cannot be deactivated directly.");
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(
+                    frame,
+                    "Are you sure you want to deactivate user: " + name + " (" + userId + ")?\nThis will prevent them from logging in.",
+                    "Confirm Deactivation",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                controller.deactivateUser(userId);
+                showMessage("User " + name + " (" + userId + ") has been deactivated.");
+                refreshUsers.run();
+            }
+        });
+
+        actions.add(activateBtn);
+        actions.add(deactBtn);
+        panel.add(actions, BorderLayout.SOUTH);
+
+        refreshUsers.run();
+        return panel;
+    }
 
     /**
-     * Displays the resource catalog browsing screen.
-     * TODO [Ananya Raju]     – Implement resource catalog UI
-     * TODO [Ardra K Gireesh] – Connect with ResourceController / resource data
+     * Minimalist List View for System Statistics (replaces card-based layout).
      */
-    
-    /**
-     * Displays the resource catalog browsing screen.
-     * TODO [Ananya Raju]     – Implement resource catalog UI
-     * TODO [Ardra K Gireesh] – Connect with ResourceController / resource data
-     */
+    private JPanel createAdminStatsTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        String[] cols = {"Metric Category", "Current Value / Count", "Details & Scope", "Status"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable table = new JTable(model);
+        styleTable(table);
+
+        Runnable refreshStats = () -> {
+            model.setRowCount(0);
+            if (controller == null) return;
+
+            int totalUsers = controller.getAllUsers().size();
+            int totalVolunteers = controller.getVolunteers().size();
+            int activeVolunteers = 0;
+            for (Volunteer v : controller.getVolunteers()) {
+                if (AppConstants.VOLUNTEER_AVAILABLE.equals(v.getAvailabilityStatus())) {
+                    activeVolunteers++;
+                }
+            }
+
+            int totalResources = controller.getResourceCatalog().size();
+            int availableResources = 0;
+            for (Resource r : controller.getResourceCatalog()) {
+                if (AppConstants.RESOURCE_STATUS_AVAILABLE.equals(r.getStatus())) {
+                    availableResources++;
+                }
+            }
+
+            int totalRequests = controller.getRequests().size();
+            int openEmergency = 0;
+            int openGeneral = 0;
+            int resolved = 0;
+            for (Request req : controller.getRequests()) {
+                if (AppConstants.REQUEST_STATUS_OPEN.equals(req.getStatus())) {
+                    if (AppConstants.REQUEST_TYPE_EMERGENCY.equals(req.getRequestType())) {
+                        openEmergency++;
+                    } else {
+                        openGeneral++;
+                    }
+                } else if (AppConstants.REQUEST_STATUS_RESOLVED.equals(req.getStatus())) {
+                    resolved++;
+                }
+            }
+
+            model.addRow(new Object[]{
+                    "Registered Users",
+                    totalUsers + " users",
+                    "Persisted in local SQLite database (campuspulse.db)",
+                    "Active"
+            });
+            model.addRow(new Object[]{
+                    "Registered Volunteers",
+                    totalVolunteers + " total (" + activeVolunteers + " available)",
+                    "Volunteers ready for assignment and emergency response",
+                    activeVolunteers > 0 ? "Ready" : "Standby"
+            });
+            model.addRow(new Object[]{
+                    "Catalog Resources",
+                    totalResources + " items (" + availableResources + " available)",
+                    "Equipment, books, and materials in active catalog",
+                    "In Stock"
+            });
+            model.addRow(new Object[]{
+                    "Total Service Requests",
+                    totalRequests + " requests",
+                    "General and emergency assistance requests recorded",
+                    resolved + " Resolved"
+            });
+            model.addRow(new Object[]{
+                    "Open Emergency Requests",
+                    openEmergency + " open emergencies",
+                    "High priority requests awaiting volunteer assignment",
+                    openEmergency > 0 ? "Requires Attention" : "Normal"
+            });
+            model.addRow(new Object[]{
+                    "Open General Requests",
+                    openGeneral + " open general requests",
+                    "Routine assistance requests in open status",
+                    "Normal"
+            });
+        };
+
+        refreshStats.run();
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        JButton refreshBtn = new JButton("Refresh Statistics");
+        refreshBtn.addActionListener(e -> refreshStats.run());
+        top.add(refreshBtn);
+
+        panel.add(top, BorderLayout.NORTH);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel createAdminOversightTab() {
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JTextArea info = new JTextArea();
+        info.setEditable(false);
+        info.setFont(new Font("Monospaced", Font.PLAIN, 12));
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== CAMPUSPULSE SYSTEM OVERSIGHT ===\n\n");
+        sb.append("DATABASE STATUS: SQLite Active (campuspulse.db)\n");
+        sb.append("REGISTERED USERS COUNT: ").append(controller != null ? controller.getAllUsers().size() : 0).append("\n");
+        sb.append("RESOURCES IN CATALOG: ").append(controller != null ? controller.getResourceCatalog().size() : 0).append("\n");
+        sb.append("TOTAL REQUESTS CREATED: ").append(controller != null ? controller.getRequests().size() : 0).append("\n\n");
+        sb.append("ACTIVE EMERGENCY AUTO-DISPATCH RULES:\n");
+        sb.append(" - 100 pt score for matching volunteer skill\n");
+        sb.append(" - Workload balancing penalty per assigned request\n");
+        sb.append(" - Fallback to available volunteer during emergencies\n");
+
+        info.setText(sb.toString());
+        panel.add(new JScrollPane(info), BorderLayout.CENTER);
+        return panel;
+    }
+
+    // =========================================================================
+    // 6. RESOURCE CATALOG SCREEN (SHARED)
+    // =========================================================================
+
     public void showResourceCatalog() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        JPanel root = new JPanel(new BorderLayout());
+        root.add(createHeader(AppConstants.TITLE_RESOURCE_CATALOG), BorderLayout.NORTH);
+        root.add(createStudentCatalogTab(), BorderLayout.CENTER);
 
-        JLabel title = new JLabel(
-                AppConstants.TITLE_RESOURCE_CATALOG,
-                SwingConstants.CENTER
-        );
-        title.setFont(new Font("Arial", Font.BOLD, 24));
-        panel.add(title, BorderLayout.NORTH);
-
-        JPanel searchPanel = new JPanel(new FlowLayout());
-
-        JTextField searchField = new JTextField(20);
-        JButton searchButton = new JButton(AppConstants.LABEL_SEARCH);
-
-        searchPanel.add(new JLabel("Search resources:"));
-        searchPanel.add(searchField);
-        searchPanel.add(searchButton);
-
-        panel.add(searchPanel, BorderLayout.CENTER);
-
-        JPanel bottomPanel = new JPanel(new FlowLayout());
-
-        JButton backButton = new JButton(AppConstants.LABEL_BACK);
-        backButton.addActionListener(e -> {
-            User user = controller != null
-                    ? controller.getCurrentUser()
-                    : null;
-
-            if (user == null) {
-                showLoginScreen();
-            } else if (AppConstants.ROLE_STUDENT.equals(user.getRole())) {
-                showStudentDashboard();
-            } else if (AppConstants.ROLE_VOLUNTEER.equals(user.getRole())) {
-                showVolunteerDashboard();
-            } else if (AppConstants.ROLE_STAFF.equals(user.getRole())) {
-                showStaffDashboard();
-            } else if (AppConstants.ROLE_ADMIN.equals(user.getRole())) {
-                showAdminPanel();
-            } else {
-                showLoginScreen();
-            }
-        });
-
-        bottomPanel.add(backButton);
-        panel.add(bottomPanel, BorderLayout.SOUTH);
-
-        mainPanel.add(panel, "RESOURCE_CATALOG");
+        mainPanel.add(root, "RESOURCE_CATALOG");
         cardLayout.show(mainPanel, "RESOURCE_CATALOG");
-
-        // Original placeholder:
-        // System.out.println("[MainView] showResourceCatalog() — not yet implemented");
     }
 
+    // =========================================================================
+    // 7. REQUEST LIST SCREEN (SHARED)
+    // =========================================================================
 
-    /**
-     * Displays a list of open requests (general / emergency).
-     * TODO [Ananya Raju]   – Implement request list UI
-     * TODO [Ashish K Biju] – Connect with request data
-     */
-    
-    /**
-     * Displays a list of open requests (general / emergency).
-     * TODO [Ananya Raju]   – Implement request list UI
-     * TODO [Ashish K Biju] – Connect with request data
-     */
     public void showRequestList() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        JPanel root = new JPanel(new BorderLayout());
+        root.add(createHeader(AppConstants.TITLE_REQUEST_LIST), BorderLayout.NORTH);
+        root.add(createStudentAssistanceTab(), BorderLayout.CENTER);
 
-        JLabel title = new JLabel(
-                AppConstants.TITLE_REQUEST_LIST,
-                SwingConstants.CENTER
-        );
-        title.setFont(new Font("Arial", Font.BOLD, 24));
-        panel.add(title, BorderLayout.NORTH);
-
-        JTextArea requestArea = new JTextArea();
-        requestArea.setEditable(false);
-        requestArea.setLineWrap(true);
-        requestArea.setWrapStyleWord(true);
-        requestArea.setText(
-                "Requests will appear here when request data is connected."
-        );
-
-        JScrollPane scrollPane = new JScrollPane(requestArea);
-        panel.add(scrollPane, BorderLayout.CENTER);
-
-        JPanel bottomPanel = new JPanel(new FlowLayout());
-
-        JButton backButton = new JButton(AppConstants.LABEL_BACK);
-        backButton.addActionListener(e -> {
-            User user = controller != null
-                    ? controller.getCurrentUser()
-                    : null;
-
-            if (user == null) {
-                showLoginScreen();
-            } else if (AppConstants.ROLE_STUDENT.equals(user.getRole())) {
-                showStudentDashboard();
-            } else if (AppConstants.ROLE_VOLUNTEER.equals(user.getRole())) {
-                showVolunteerDashboard();
-            } else if (AppConstants.ROLE_STAFF.equals(user.getRole())) {
-                showStaffDashboard();
-            } else if (AppConstants.ROLE_ADMIN.equals(user.getRole())) {
-                showAdminPanel();
-            } else {
-                showLoginScreen();
-            }
-        });
-
-        bottomPanel.add(backButton);
-        panel.add(bottomPanel, BorderLayout.SOUTH);
-
-        mainPanel.add(panel, "REQUEST_LIST");
+        mainPanel.add(root, "REQUEST_LIST");
         cardLayout.show(mainPanel, "REQUEST_LIST");
-
-        // Original placeholder:
-        // System.out.println("[MainView] showRequestList() — not yet implemented");
     }
 
+    // =========================================================================
+    // DIALOGS
+    // =========================================================================
 
-    /**
-     * Shows an informational message dialog.
-     * TODO [Ananya Raju] – Implement message display
-     *
-     * @param message the message to display
-     */
-    
-    /**
-     * Shows an informational message dialog.
-     *
-     * @param message the message to display
-     */
     public void showMessage(String message) {
-        JOptionPane.showMessageDialog(
-                frame,
-                message,
-                AppConstants.APP_NAME,
-                JOptionPane.INFORMATION_MESSAGE
-        );
-
-        // Original placeholder:
-        // System.out.println("[MainView] Message: " + message);
+        if (!GraphicsEnvironment.isHeadless() && frame != null) {
+            JOptionPane.showMessageDialog(
+                    frame,
+                    message,
+                    AppConstants.APP_NAME,
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+        } else {
+            System.out.println("[CampusPulse] Message: " + message);
+        }
     }
 
-    /**
-     * Shows an error message dialog.
-     * TODO [Ananya Raju] – Implement error display
-     *
-     * @param error the error description
-     */
-    
-    /**
-     * Shows an error message dialog.
-     *
-     * @param error the error description
-     */
     public void showError(String error) {
-        JOptionPane.showMessageDialog(
-                frame,
-                error,
-                "Error",
-                JOptionPane.ERROR_MESSAGE
-        );
-
-        // Original placeholder:
-        // System.err.println("[MainView] Error: " + error);
+        if (!GraphicsEnvironment.isHeadless() && frame != null) {
+            JOptionPane.showMessageDialog(
+                    frame,
+                    error,
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        } else {
+            System.err.println("[CampusPulse] Error: " + error);
+        }
     }
-
 }

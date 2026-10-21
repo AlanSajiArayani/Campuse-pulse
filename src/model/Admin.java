@@ -4,10 +4,6 @@ package model;
  * Admin.java
  * Represents an administrator user of CampusPulse.
  * Extends {@link User} — inherits userId, name, email, phone, password, role.
- *
- * TODO [Alan Saji] – Admin panel, user management, and final integration
- *
- * SHARED MODEL – Do NOT add fields that already exist in User.
  */
 public class Admin extends User {
 
@@ -52,8 +48,7 @@ public class Admin extends User {
     public void           setUserRepository(UserRepository userRepository) { this.userRepository = userRepository; }
 
     // -------------------------------------------------------------------------
-    // Admin-specific method placeholders
-    // TODO [Alan Saji] – Implement admin operations below
+    // Admin Operations
     // -------------------------------------------------------------------------
 
     /**
@@ -74,6 +69,15 @@ public class Admin extends User {
     public void deactivateUser(String userId) {
         if (userRepository != null && userId != null && !userId.trim().isEmpty()) {
             userRepository.deactivateUser(userId);
+        }
+    }
+
+    /**
+     * Activates a user account by userId.
+     */
+    public void activateUser(String userId) {
+        if (userRepository != null && userId != null && !userId.trim().isEmpty()) {
+            userRepository.activateUser(userId);
         }
     }
 

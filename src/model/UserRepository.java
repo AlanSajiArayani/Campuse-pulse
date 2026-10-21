@@ -53,7 +53,7 @@ public class UserRepository {
         return DriverManager.getConnection("jdbc:sqlite:" + dbPath);
     }
 
-    public void initSchema() {
+    public final void initSchema() {
         String createTableSql = "CREATE TABLE IF NOT EXISTS users ("
                 + "user_id TEXT PRIMARY KEY, "
                 + "name TEXT NOT NULL, "
@@ -180,6 +180,23 @@ public class UserRepository {
             return affected > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Failed to deactivate user: " + e.getMessage(), e);
+        }
+    }
+
+    public boolean activateUser(String userId) {
+        if (userId == null || userId.trim().isEmpty()) {
+            return false;
+        }
+
+        String sql = "UPDATE users SET is_active = 1 WHERE user_id = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, userId.trim());
+            int affected = pstmt.executeUpdate();
+            return affected > 0;
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to activate user: " + e.getMessage(), e);
         }
     }
 
