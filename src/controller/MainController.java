@@ -137,6 +137,10 @@ public class MainController {
         return r.returnResource(returnerId);
     }
 
+    public List<Resource> getResourceCatalog() {
+        return resourceService.getAllResources();
+    }
+
     // =========================================================================
     // SECTION 3 – REQUEST & VOLUNTEER MANAGEMENT
     // Owner: Ashish K Biju

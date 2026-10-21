@@ -84,4 +84,7 @@ public class ResourceService
         r.setCategory(newCategory);
         return true;
     }
+    public List<Resource> getAllResources() {
+        return resources;
+    }
 }
