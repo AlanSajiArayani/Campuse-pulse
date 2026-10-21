@@ -2,6 +2,8 @@ import controller.AuthController;
 import model.User;
 import model.UserRepository;
 
+import java.io.File;
+
 /**
  * AuthTest.java
  * Standalone authentication tests for CampusPulse — Phase 1.
@@ -26,99 +28,106 @@ public class AuthTest {
         System.out.println("=== CampusPulse — Authentication Tests (Phase 1) ===\n");
 
         // -------------------------------------------------------------------------
-        // Test setup: one repository + one controller shared across all tests.
+        // Test setup: isolated test database for repeatable execution.
         // A second user is added to support the "no stale session" test.
         // -------------------------------------------------------------------------
-        UserRepository repository = new UserRepository();
+        String testDb = "data/test_auth_" + System.currentTimeMillis() + ".db";
 
-        User student = new User(
-            "U001",
-            "Test Student",
-            "student@example.com",
-            "9876543210",
-            "secret-pass",
-            "STUDENT"
-        );
-        User admin = new User(
-            "U002",
-            "Test Admin",
-            "admin@example.com",
-            "9000000001",
-            "admin-pass",
-            "ADMIN"
-        );
-        repository.addUser(student);
-        repository.addUser(admin);
+        try {
+            UserRepository repository = new UserRepository(testDb);
 
-        AuthController auth = new AuthController(repository);
+            User student = new User(
+                "U001",
+                "Test Student",
+                "student@example.com",
+                "9876543210",
+                "secret-pass",
+                "STUDENT"
+            );
+            User admin = new User(
+                "U002",
+                "Test Admin",
+                "admin@example.com",
+                "9000000001",
+                "admin-pass",
+                "ADMIN"
+            );
+            repository.addUser(student);
+            repository.addUser(admin);
 
-        // -------------------------------------------------------------------------
-        // TC-1  Correct email + correct password → login succeeds
-        // -------------------------------------------------------------------------
-        {
-            boolean result = auth.login("student@example.com", "secret-pass");
-            assertEqual("TC-1  Correct credentials → login returns true", true, result);
-            auth.logout();
-        }
+            AuthController auth = new AuthController(repository);
 
-        // -------------------------------------------------------------------------
-        // TC-2  Correct email + WRONG password → login fails
-        // -------------------------------------------------------------------------
-        {
-            boolean result = auth.login("student@example.com", "wrong-password");
-            assertEqual("TC-2  Wrong password → login returns false", false, result);
-        }
+            // -------------------------------------------------------------------------
+            // TC-1  Correct email + correct password → login succeeds
+            // -------------------------------------------------------------------------
+            {
+                boolean result = auth.login("student@example.com", "secret-pass");
+                assertEqual("TC-1  Correct credentials → login returns true", true, result);
+                auth.logout();
+            }
 
-        // -------------------------------------------------------------------------
-        // TC-3  Unknown email → login fails
-        // -------------------------------------------------------------------------
-        {
-            boolean result = auth.login("nobody@example.com", "secret-pass");
-            assertEqual("TC-3  Unknown email → login returns false", false, result);
-        }
+            // -------------------------------------------------------------------------
+            // TC-2  Correct email + WRONG password → login fails
+            // -------------------------------------------------------------------------
+            {
+                boolean result = auth.login("student@example.com", "wrong-password");
+                assertEqual("TC-2  Wrong password → login returns false", false, result);
+            }
 
-        // -------------------------------------------------------------------------
-        // TC-4  Case-insensitive email match (repository uses equalsIgnoreCase)
-        // -------------------------------------------------------------------------
-        {
-            boolean result = auth.login("STUDENT@EXAMPLE.COM", "secret-pass");
-            assertEqual("TC-4  Uppercase email → login returns true (case-insensitive)", true, result);
-            auth.logout();
-        }
+            // -------------------------------------------------------------------------
+            // TC-3  Unknown email → login fails
+            // -------------------------------------------------------------------------
+            {
+                boolean result = auth.login("nobody@example.com", "secret-pass");
+                assertEqual("TC-3  Unknown email → login returns false", false, result);
+            }
 
-        // -------------------------------------------------------------------------
-        // TC-5  After successful login, getCurrentUser() returns the correct user
-        // -------------------------------------------------------------------------
-        {
-            auth.login("student@example.com", "secret-pass");
-            User current = auth.getCurrentUser();
-            assertNotNull("TC-5a After login, getCurrentUser() is not null", current);
-            assertEqual("TC-5b getCurrentUser() email matches", "student@example.com",
-                        current != null ? current.getEmail() : null);
-            assertEqual("TC-5c getCurrentUser() userId matches", "U001",
-                        current != null ? current.getUserId() : null);
-            auth.logout();
-        }
+            // -------------------------------------------------------------------------
+            // TC-4  Case-insensitive email match (repository uses equalsIgnoreCase / COLLATE NOCASE)
+            // -------------------------------------------------------------------------
+            {
+                boolean result = auth.login("STUDENT@EXAMPLE.COM", "secret-pass");
+                assertEqual("TC-4  Uppercase email → login returns true (case-insensitive)", true, result);
+                auth.logout();
+            }
 
-        // -------------------------------------------------------------------------
-        // TC-6  After logout, getCurrentUser() returns null
-        // -------------------------------------------------------------------------
-        {
-            auth.login("student@example.com", "secret-pass");
-            auth.logout();
-            assertNull("TC-6  After logout, getCurrentUser() is null", auth.getCurrentUser());
-        }
+            // -------------------------------------------------------------------------
+            // TC-5  After successful login, getCurrentUser() returns the correct user
+            // -------------------------------------------------------------------------
+            {
+                auth.login("student@example.com", "secret-pass");
+                User current = auth.getCurrentUser();
+                assertNotNull("TC-5a After login, getCurrentUser() is not null", current);
+                assertEqual("TC-5b getCurrentUser() email matches", "student@example.com",
+                            current != null ? current.getEmail() : null);
+                assertEqual("TC-5c getCurrentUser() userId matches", "U001",
+                            current != null ? current.getUserId() : null);
+                auth.logout();
+            }
 
-        // -------------------------------------------------------------------------
-        // TC-7  After a FAILED login, no previously authenticated user remains active.
-        //        Login as admin first → then attempt wrong credentials → user must be null.
-        // -------------------------------------------------------------------------
-        {
-            auth.login("admin@example.com", "admin-pass");   // success
-            auth.logout();                                    // clean state
-            auth.login("student@example.com", "wrong");      // intentional failure
-            assertNull("TC-7  Failed login does not preserve previous session",
-                       auth.getCurrentUser());
+            // -------------------------------------------------------------------------
+            // TC-6  After logout, getCurrentUser() returns null
+            // -------------------------------------------------------------------------
+            {
+                auth.login("student@example.com", "secret-pass");
+                auth.logout();
+                assertNull("TC-6  After logout, getCurrentUser() is null", auth.getCurrentUser());
+            }
+
+            // -------------------------------------------------------------------------
+            // TC-7  After a FAILED login, no previously authenticated user remains active.
+            //        Login as admin first → then attempt wrong credentials → user must be null.
+            // -------------------------------------------------------------------------
+            {
+                auth.login("admin@example.com", "admin-pass");   // success
+                auth.logout();                                    // clean state
+                auth.login("student@example.com", "wrong");      // intentional failure
+                assertNull("TC-7  Failed login does not preserve previous session",
+                           auth.getCurrentUser());
+            }
+
+        } finally {
+            cleanupDb(testDb);
         }
 
         // -------------------------------------------------------------------------
@@ -134,6 +143,13 @@ public class AuthTest {
         } else {
             System.out.println("\nAll tests PASSED.");
         }
+    }
+
+    private static void cleanupDb(String path) {
+        new File(path).delete();
+        new File(path + "-wal").delete();
+        new File(path + "-shm").delete();
+        new File(path + "-journal").delete();
     }
 
     // -------------------------------------------------------------------------
