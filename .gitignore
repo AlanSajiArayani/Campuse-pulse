@@ -39,5 +39,13 @@ nbproject/
 Thumbs.db
 
 # Implementation reports
-docs/reports/
+docs/reports/*
+!docs/reports/phase-3-database-integration-report.md
+
+# Database and runtime data files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+data/
 
