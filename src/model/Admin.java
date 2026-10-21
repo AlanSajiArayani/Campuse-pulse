@@ -15,6 +15,7 @@ public class Admin extends User {
     // Fields
     // -------------------------------------------------------------------------
     private String adminId;
+    private UserRepository userRepository;
 
     // -------------------------------------------------------------------------
     // Constructors
@@ -32,6 +33,14 @@ public class Admin extends User {
         this.adminId = adminId;
     }
 
+    /** Constructor with UserRepository. */
+    public Admin(String userId, String name, String email, String phone,
+                 String password, String adminId, UserRepository userRepository) {
+        super(userId, name, email, phone, password, "ADMIN");
+        this.adminId = adminId;
+        this.userRepository = userRepository;
+    }
+
     // -------------------------------------------------------------------------
     // Getters & Setters
     // -------------------------------------------------------------------------
@@ -39,25 +48,33 @@ public class Admin extends User {
     public String getAdminId()                { return adminId; }
     public void   setAdminId(String adminId)  { this.adminId = adminId; }
 
+    public UserRepository getUserRepository()                           { return userRepository; }
+    public void           setUserRepository(UserRepository userRepository) { this.userRepository = userRepository; }
+
     // -------------------------------------------------------------------------
     // Admin-specific method placeholders
     // TODO [Alan Saji] – Implement admin operations below
     // -------------------------------------------------------------------------
 
     /**
-     * Returns a list (or report) of all system users.
-     * TODO [Alan Saji] – Implement; fetch from data source
+     * Displays all registered users from the user repository.
      */
     public void viewAllUsers() {
-        // TODO [Alan Saji] – Implement
+        if (userRepository != null) {
+            java.util.List<User> users = userRepository.getAllUsers();
+            for (User u : users) {
+                System.out.println(u);
+            }
+        }
     }
 
     /**
      * Deactivates a user account by userId.
-     * TODO [Alan Saji] – Implement
      */
     public void deactivateUser(String userId) {
-        // TODO [Alan Saji] – Implement
+        if (userRepository != null && userId != null && !userId.trim().isEmpty()) {
+            userRepository.deactivateUser(userId);
+        }
     }
 
     // -------------------------------------------------------------------------

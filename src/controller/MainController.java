@@ -29,9 +29,10 @@ public class MainController {
     // -------------------------------------------------------------------------
     // Fields
     // -------------------------------------------------------------------------
-
-    private MainView view;
-    private User currentUser;
+    private MainView              view;
+    private User                  currentUser;
+    private model.UserRepository userRepository;
+    private AuthController        authController;
 
     private ResourceService resourceService = new ResourceService();
 
@@ -46,8 +47,10 @@ public class MainController {
     // -------------------------------------------------------------------------
 
     public MainController(MainView view) {
-        this.view = view;
-        this.currentUser = null;
+        this.view           = view;
+        this.currentUser    = null;
+        this.userRepository = new model.UserRepository();
+        this.authController = new AuthController(userRepository);
     }
 
     // =========================================================================
@@ -56,11 +59,19 @@ public class MainController {
     // =========================================================================
 
     public boolean login(String email, String password) {
-        // TODO [Alan Saji] – Implement authentication
-        return false;
+        // LIMITATION: password is compared in plaintext. Hashing deferred to a later phase.
+        boolean success = authController.login(email, password);
+        if (success) {
+            this.currentUser = authController.getCurrentUser();
+        } else {
+            // Ensure no stale session remains on failure
+            this.currentUser = null;
+        }
+        return success;
     }
 
     public void logout() {
+        authController.logout();
         this.currentUser = null;
     }
 
@@ -525,12 +536,14 @@ public class MainController {
     // =========================================================================
 
     public List<User> getAllUsers() {
-        // TODO [Alan Saji] – Fetch from data source
-        return null;
+        return userRepository.getAllUsers();
     }
 
     public void deactivateUser(String userId) {
-        // TODO [Alan Saji] – Implement account deactivation
+        if (userId == null || userId.trim().isEmpty()) {
+            return;
+        }
+        userRepository.deactivateUser(userId);
     }
 
     // =========================================================================
