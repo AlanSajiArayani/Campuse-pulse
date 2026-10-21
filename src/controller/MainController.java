@@ -25,17 +25,22 @@ public class MainController {
     // -------------------------------------------------------------------------
     // Fields
     // -------------------------------------------------------------------------
-    private MainView view;
-    private User     currentUser;   // The currently logged-in user (null when no session)
+    private MainView         view;
+    private User             currentUser;    // The currently logged-in user (null when no session)
+    // [Alan Saji] – Authentication components (Section 1)
+    private model.UserRepository  userRepository;
+    private AuthController   authController;
 
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
 
     public MainController(MainView view) {
-        this.view        = view;
-        this.currentUser = null;
-        // TODO [Alan Saji] – Initialize data source / repository connections here
+        this.view           = view;
+        this.currentUser    = null;
+        // [Alan Saji] – Initialize authentication components
+        this.userRepository = new model.UserRepository();
+        this.authController = new AuthController(userRepository);
     }
 
     // =========================================================================
@@ -54,8 +59,16 @@ public class MainController {
      * @return {@code true} if login succeeded, {@code false} otherwise
      */
     public boolean login(String email, String password) {
-        // TODO [Alan Saji] – Implement
-        return false;
+        // [Alan Saji] – Delegate to AuthController; synchronize currentUser on success.
+        // LIMITATION: password is compared in plaintext. Hashing deferred to a later phase.
+        boolean success = authController.login(email, password);
+        if (success) {
+            this.currentUser = authController.getCurrentUser();
+        } else {
+            // Ensure no stale session remains on failure
+            this.currentUser = null;
+        }
+        return success;
     }
 
     /**
@@ -63,7 +76,8 @@ public class MainController {
      * TODO [Alan Saji] – Implement session teardown, navigate back to login screen
      */
     public void logout() {
-        // TODO [Alan Saji] – Implement
+        // [Alan Saji] – Delegate to AuthController, then clear local session reference
+        authController.logout();
         this.currentUser = null;
     }
 
