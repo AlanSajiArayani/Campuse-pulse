@@ -1,9 +1,5 @@
-
 package model;
 
-/**
- * Represents a service or emergency request raised by a user.
- */
 public class Request {
 
     private String requestId;

@@ -1,10 +1,5 @@
 package model;
 
-/**
- * User.java
- * Base domain model representing a registered user in CampusPulse.
- * Subclassed by Student, Staff, Volunteer, and Admin.
- */
 public class User {
 
     private String userId;
@@ -44,17 +39,11 @@ public class User {
     public String getRole()              { return role; }
     public void   setRole(String role)   { this.role = role; }
 
-    /**
-     * Validates credentials against this user instance.
-     */
     public boolean login(String email, String password) {
         return email != null && email.equalsIgnoreCase(this.email)
             && password != null && password.equals(this.password);
     }
 
-    /**
-     * Clears user session reference.
-     */
     public void logout() {
     }
 

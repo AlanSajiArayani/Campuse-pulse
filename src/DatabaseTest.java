@@ -7,16 +7,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * DatabaseTest.java
- * Standalone verification tests for CampusPulse Phase 3 — SQLite Database Integration.
- *
- * Verifies schema creation, persistence across repository instances, case-insensitive
- * email queries, constraint handling, deactivation persistence, and AuthController/Admin integration.
- *
- * No external test framework required: uses plain-Java assertions and System.exit(1) on failure.
- * Owner: Alan Saji
- */
 public class DatabaseTest {
 
     private static int passed = 0;
@@ -27,9 +17,6 @@ public class DatabaseTest {
         System.out.println("=== CampusPulse — SQLite Database Integration Tests (Phase 3) ===\n");
 
         try {
-            // -----------------------------------------------------------------
-            // TC-1: Schema initializes successfully
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc1");
                 UserRepository repo = new UserRepository(dbPath);
@@ -37,9 +24,6 @@ public class DatabaseTest {
                 assertEqual("TC-1 Schema initialized and database file created", true, dbFile.exists());
             }
 
-            // -----------------------------------------------------------------
-            // TC-2: A user can be inserted and retrieved
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc2");
                 UserRepository repo = new UserRepository(dbPath);
@@ -58,15 +42,11 @@ public class DatabaseTest {
                 assertEqual("TC-2g ID from email query matches", "U001", byEmail != null ? byEmail.getUserId() : null);
             }
 
-            // -----------------------------------------------------------------
-            // TC-3: User data persists across newly created repository instances
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc3");
                 UserRepository repo1 = new UserRepository(dbPath);
                 repo1.addUser(new User("U002", "Bob Smith", "bob@test.edu", "5551234567", "secret", "STAFF"));
 
-                // Simulate app restart with a fresh UserRepository instance
                 UserRepository repo2 = new UserRepository(dbPath);
                 User retrieved = repo2.findById("U002");
                 assertNotNull("TC-3a Retrieved user from second repository instance", retrieved);
@@ -74,9 +54,6 @@ public class DatabaseTest {
                 assertEqual("TC-3c Persistent user email matches", "bob@test.edu", retrieved != null ? retrieved.getEmail() : null);
             }
 
-            // -----------------------------------------------------------------
-            // TC-4: Email lookup is case-insensitive
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc4");
                 UserRepository repo = new UserRepository(dbPath);
@@ -93,9 +70,6 @@ public class DatabaseTest {
                 assertNotNull("TC-4d Found by mixed-case email", mixedMatch);
             }
 
-            // -----------------------------------------------------------------
-            // TC-5: Unknown users return null or false
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc5");
                 UserRepository repo = new UserRepository(dbPath);
@@ -110,9 +84,6 @@ public class DatabaseTest {
                 assertEqual("TC-5h deactivateUser on nonexistent user returns false", false, repo.deactivateUser("UNKNOWN"));
             }
 
-            // -----------------------------------------------------------------
-            // TC-6: Duplicate email or duplicate identifier handling is safe and clearly defined
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc6");
                 UserRepository repo = new UserRepository(dbPath);
@@ -137,9 +108,6 @@ public class DatabaseTest {
                 assertEqual("TC-6c Repository row count remains 1 after failed duplicates", 1, repo.getAllUsers().size());
             }
 
-            // -----------------------------------------------------------------
-            // TC-7: getAllUsers() returns expected users and cannot mutate repository storage
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc7");
                 UserRepository repo = new UserRepository(dbPath);
@@ -158,9 +126,6 @@ public class DatabaseTest {
                 assertEqual("TC-7b Returned list is unmodifiable", true, mutationBlocked);
             }
 
-            // -----------------------------------------------------------------
-            // TC-8: User deactivation persists across repository instances
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc8");
                 UserRepository repo1 = new UserRepository(dbPath);
@@ -171,12 +136,10 @@ public class DatabaseTest {
                 assertEqual("TC-8b deactivateUser() returns true", true, deact);
                 assertEqual("TC-8c User is inactive in instance 1", false, repo1.isUserActive("U008"));
 
-                // Second repository instance on same database
                 UserRepository repo2 = new UserRepository(dbPath);
                 assertEqual("TC-8d Deactivation persisted in second instance", false, repo2.isUserActive("U008"));
                 assertNotNull("TC-8e Deactivated user still present in repository", repo2.findById("U008"));
 
-                // Reactivation persists across repository instances
                 boolean act = repo2.activateUser("U008");
                 assertEqual("TC-8f activateUser() returns true", true, act);
                 assertEqual("TC-8g User is active in instance 2", true, repo2.isUserActive("U008"));
@@ -185,9 +148,6 @@ public class DatabaseTest {
                 assertEqual("TC-8h Reactivation persisted in third instance", true, repo3.isUserActive("U008"));
             }
 
-            // -----------------------------------------------------------------
-            // TC-9: Deactivated users cannot log in
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc9");
                 UserRepository repo = new UserRepository(dbPath);
@@ -202,9 +162,6 @@ public class DatabaseTest {
                 assertNull("TC-9c No session retained for deactivated user", auth.getCurrentUser());
             }
 
-            // -----------------------------------------------------------------
-            // TC-10: Active users can still log in with correct credentials
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc10");
                 UserRepository repo = new UserRepository(dbPath);
@@ -218,9 +175,6 @@ public class DatabaseTest {
                 auth.logout();
             }
 
-            // -----------------------------------------------------------------
-            // TC-11: Incorrect passwords and unknown emails are rejected
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc11");
                 UserRepository repo = new UserRepository(dbPath);
@@ -234,9 +188,6 @@ public class DatabaseTest {
                 assertNull("TC-11d No session on unknown email", auth.getCurrentUser());
             }
 
-            // -----------------------------------------------------------------
-            // TC-12: Logout and failed-login session clearing still work
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc12");
                 UserRepository repo = new UserRepository(dbPath);
@@ -248,15 +199,11 @@ public class DatabaseTest {
                 auth.logout();
                 assertNull("TC-12b Session cleared after logout", auth.getCurrentUser());
 
-                // Failed login does not restore old user
                 auth.login("hank@test.edu", "hank-pass");
                 auth.login("hank@test.edu", "bad-pass");
                 assertNull("TC-12c Session cleared after failed login attempt", auth.getCurrentUser());
             }
 
-            // -----------------------------------------------------------------
-            // TC-13: Admin operations integration with persisted database
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc13");
                 UserRepository repo = new UserRepository(dbPath);
@@ -271,9 +218,6 @@ public class DatabaseTest {
                 assertEqual("TC-13c User B remains active", true, repo.isUserActive("U013B"));
             }
 
-            // -----------------------------------------------------------------
-            // TC-14: Database errors do not produce false success results
-            // -----------------------------------------------------------------
             {
                 String dbPath = createTempDbPath("tc14");
                 UserRepository repo = new UserRepository(dbPath);
@@ -318,9 +262,6 @@ public class DatabaseTest {
             cleanupTempDatabases();
         }
 
-        // ---------------------------------------------------------------------
-        // Summary
-        // ---------------------------------------------------------------------
         System.out.println("\n--- Results ---");
         System.out.println("PASSED: " + passed);
         System.out.println("FAILED: " + failed);
@@ -385,4 +326,3 @@ public class DatabaseTest {
         }
     }
 }
-

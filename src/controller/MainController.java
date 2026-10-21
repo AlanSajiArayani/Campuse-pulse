@@ -14,21 +14,8 @@ import java.util.Comparator;
 
 import util.AppConstants;
 
-/**
- * MainController.java
- * Central MVC Controller coordinating views, domain models, services, and repositories.
- *
- * Team Module Ownership:
- * - Alan Saji       : Section 1 (Authentication), Section 4 (Admin Operations), Database Integration
- * - Ardra K Gireesh : Section 2 (Resource Management, Catalog & Inventory)
- * - Ashish K Biju   : Section 3 (Request Lifecycle, Volunteer Management & Dispatch Matching)
- * - Ananya Raju     : Section 5 (Application Startup, View Routing & Screen Architecture)
- */
 public class MainController {
 
-    // -------------------------------------------------------------------------
-    // Fields
-    // -------------------------------------------------------------------------
     private MainView              view;
     private User                  currentUser;
     private model.UserRepository userRepository;
@@ -38,15 +25,10 @@ public class MainController {
     private service.RequestService requestService;
     private service.HandoverService handoverService;
 
-    // Request and volunteer data (in-memory for now)
     private List<Request> requests = new ArrayList<>();
     private List<Volunteer> volunteers = new ArrayList<>();
 
     private int requestCounter = 1;
-
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
 
     public MainController(MainView view) {
         this.view           = view;
@@ -82,7 +64,6 @@ public class MainController {
             ));
         }
 
-        // Initialize default volunteer if not already registered
         User volUser = userRepository.findById("U003");
         if (volUser != null && volunteers.isEmpty()) {
             Volunteer v = registerVolunteer(volUser);
@@ -95,7 +76,6 @@ public class MainController {
             }
         }
 
-        // Initialize sample requests if empty
         if (requests.isEmpty()) {
             createRequest(AppConstants.REQUEST_TYPE_GENERAL, "U001",
                 "Need guidance with lab setup for physics experiment", "Lab Assistant");
@@ -128,18 +108,11 @@ public class MainController {
         return null;
     }
 
-    // =========================================================================
-    // SECTION 1 – AUTHENTICATION
-    // Owner: Alan Saji
-    // =========================================================================
-
     public boolean login(String email, String password) {
-        // LIMITATION: password is compared in plaintext. Hashing deferred to a later phase.
         boolean success = authController.login(email, password);
         if (success) {
             this.currentUser = authController.getCurrentUser();
         } else {
-            // Ensure no stale session remains on failure
             this.currentUser = null;
         }
         return success;
@@ -153,11 +126,6 @@ public class MainController {
     public User getCurrentUser() {
         return currentUser;
     }
-
-    // =========================================================================
-    // SECTION 2 – RESOURCE MANAGEMENT
-    // Owner: Ardra K Gireesh
-    // =========================================================================
 
     public void addResource(Resource resource) {
         resourceService.addResource(resource);
@@ -191,14 +159,6 @@ public class MainController {
         return resourceService.getAllResources();
     }
 
-    // =========================================================================
-    // SECTION 3 – REQUEST & VOLUNTEER MANAGEMENT
-    // Owner: Ashish K Biju
-    // =========================================================================
-
-    /**
-     * Creates a request without a required skill.
-     */
     public Request createRequest(
             String requestType,
             String requesterId,
@@ -212,9 +172,6 @@ public class MainController {
         );
     }
 
-    /**
-     * Creates a request with an optional required skill.
-     */
     public Request createRequest(
             String requestType,
             String requesterId,
@@ -251,7 +208,6 @@ public class MainController {
 
         requests.add(request);
 
-        // Immediately attempt matching when an emergency is created.
         if (AppConstants.REQUEST_TYPE_EMERGENCY.equals(requestType)) {
             assignWaitingRequests();
         }
@@ -259,9 +215,6 @@ public class MainController {
         return request;
     }
 
-    /**
-     * Assigns an available volunteer to an open request.
-     */
     public boolean assignVolunteer(
             String requestId,
             String volunteerId) {
@@ -298,9 +251,6 @@ public class MainController {
         return true;
     }
 
-    /**
-     * Updates a request's status when the transition is valid.
-     */
     public void updateRequestStatus(
             String requestId,
             String newStatus) {
@@ -332,14 +282,12 @@ public class MainController {
                     )
                 );
 
-        // Ignore invalid status transitions.
         if (!allowed) {
             return;
         }
 
         request.updateRequestStatus(newStatus);
 
-        // Release the assigned volunteer when work is completed or cancelled.
         if (AppConstants.REQUEST_STATUS_RESOLVED.equals(newStatus)
                 || AppConstants.REQUEST_STATUS_CANCELLED.equals(newStatus)) {
 
@@ -350,7 +298,6 @@ public class MainController {
 
                 volunteer.removeAssignedRequest(requestId);
 
-                // A volunteer stays busy if other tasks are still assigned.
                 if (volunteer.getAssignedRequestIds().isEmpty()) {
                     volunteer.setAvailabilityStatus(
                             AppConstants.VOLUNTEER_AVAILABLE
@@ -358,21 +305,16 @@ public class MainController {
                 }
             }
 
-            // A newly available volunteer may handle a waiting emergency.
             assignWaitingRequests();
         }
     }
 
-    /**
-     * Finds the best available volunteer for a request.
-     *
-     * Matching rules:
-     * 1. Only available volunteers are considered.
-     * 2. For normal requests, a specified skill is mandatory.
-     * 3. For emergencies, a volunteer without the skill may be used
-     *    as a fallback.
-     * 4. Volunteers with the required skill receive a higher score.
-     * 5. Fewer assigned requests break ties.
+    /*
+     * Heuristic volunteer matching:
+     * - Only available volunteers are considered
+     * - Required skill match awards +100 points
+     * - Workload penalty: -1 point per assigned request
+     * - Fallback: emergencies can match without required skill if no specialist is available
      */
     public Volunteer matchVolunteer(Request request) {
 
@@ -403,8 +345,6 @@ public class MainController {
             boolean skillMatch =
                     needsSkill && volunteer.hasSkill(skill);
 
-            // A normal request cannot be matched to an unskilled volunteer.
-            // An emergency may use an unskilled volunteer as a fallback.
             if (needsSkill && !skillMatch && !emergency) {
                 continue;
             }
@@ -422,11 +362,6 @@ public class MainController {
         return bestVolunteer;
     }
 
-    /**
-     * Calculates a volunteer's matching score.
-     * A required-skill match is worth 100 points.
-     * Each currently assigned request reduces the score by one.
-     */
     private int score(Volunteer volunteer, String skill) {
 
         int score = 0;
@@ -445,10 +380,6 @@ public class MainController {
         return score;
     }
 
-    /**
-     * Returns requests with emergencies first and older requests
-     * before newer requests within the same priority.
-     */
     public List<Request> getRequestsByPriority() {
 
         List<Request> sortedRequests = new ArrayList<>(requests);
@@ -470,15 +401,10 @@ public class MainController {
         return sortedRequests;
     }
 
-    /**
-     * Automatically assigns available volunteers to waiting emergencies.
-     * Emergency requests are processed by priority and creation time.
-     */
     public void assignWaitingRequests() {
 
         for (Request request : getRequestsByPriority()) {
 
-            // Only open emergency requests are handled here.
             if (!AppConstants.REQUEST_STATUS_OPEN.equals(
                     request.getStatus())) {
                 continue;
@@ -500,9 +426,6 @@ public class MainController {
         }
     }
 
-    /**
-     * Registers an existing user as a volunteer.
-     */
     public Volunteer registerVolunteer(User user) {
 
         if (user == null) {
@@ -531,16 +454,11 @@ public class MainController {
 
         volunteers.add(volunteer);
 
-        // A newly registered volunteer may be able to handle a waiting
-        // emergency immediately.
         assignWaitingRequests();
 
         return volunteer;
     }
 
-    /**
-     * Updates a volunteer's skills.
-     */
     public boolean updateVolunteerSkills(
             String volunteerId,
             List<String> skills) {
@@ -553,7 +471,6 @@ public class MainController {
 
         volunteer.setSkills(skills);
 
-        // Recheck waiting emergencies after skills change.
         assignWaitingRequests();
 
         return true;
@@ -567,9 +484,6 @@ public class MainController {
         return volunteers;
     }
 
-    /**
-     * Finds a request by ID.
-     */
     private Request findRequest(String id) {
 
         if (id == null) {
@@ -586,9 +500,6 @@ public class MainController {
         return null;
     }
 
-    /**
-     * Finds a volunteer by volunteer ID.
-     */
     private Volunteer findVolunteer(String id) {
 
         if (id == null) {
@@ -604,11 +515,6 @@ public class MainController {
 
         return null;
     }
-
-    // =========================================================================
-    // SECTION 4 – ADMIN OPERATIONS
-    // Owner: Alan Saji
-    // =========================================================================
 
     public List<User> getAllUsers() {
         return userRepository.getAllUsers();
@@ -627,11 +533,6 @@ public class MainController {
         }
         userRepository.activateUser(userId);
     }
-
-    // =========================================================================
-    // SECTION 5 – APPLICATION STARTUP / ROUTING
-    // Owner: Ananya Raju (UI flow) | Alan Saji (final integration)
-    // =========================================================================
 
     public void start() {
         view.showLoginScreen();

@@ -1,12 +1,8 @@
-
 package model;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Represents a volunteer in CampusPulse.
- */
 public class Volunteer extends User {
 
     private String volunteerId;

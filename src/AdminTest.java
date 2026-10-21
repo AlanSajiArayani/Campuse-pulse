@@ -9,16 +9,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * AdminTest.java
- * Standalone verification tests for CampusPulse Phase 2 — Admin User Management.
- * Tests user retrieval, deactivation state in UserRepository, Admin model operations,
- * and authentication enforcement for deactivated users.
- *
- * Uses isolated SQLite test databases to guarantee repeatable execution without mutating dev data.
- * No external test framework required: uses plain-Java assertions and System.exit(1) on failure.
- * Owner: Alan Saji
- */
 public class AdminTest {
 
     private static int passed = 0;
@@ -29,9 +19,6 @@ public class AdminTest {
         System.out.println("=== CampusPulse — Admin User Management Tests (Phase 2) ===\n");
 
         try {
-            // -----------------------------------------------------------------
-            // TC-1: getAllUsers() returns an empty collection for an empty repository
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 List<User> all = repo.getAllUsers();
@@ -39,9 +26,6 @@ public class AdminTest {
                 assertEqual("TC-1b getAllUsers() on empty repo is empty", 0, all.size());
             }
 
-            // -----------------------------------------------------------------
-            // TC-2: getAllUsers() returns all registered users
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 User u1 = new User("U101", "Alice", "alice@example.com", "1111111111", "pass1", "STUDENT");
@@ -57,9 +41,6 @@ public class AdminTest {
                 assertEqual("TC-2c Contains Bob (U102)", true, containsU2);
             }
 
-            // -----------------------------------------------------------------
-            // TC-3: Modifying the returned collection cannot mutate the repository's internal list
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 repo.addUser(new User("U101", "Alice", "alice@example.com", "111", "p", "STUDENT"));
@@ -75,9 +56,6 @@ public class AdminTest {
                 assertEqual("TC-3b Repository internal size remains 1", 1, repo.getAllUsers().size());
             }
 
-            // -----------------------------------------------------------------
-            // TC-4: Deactivating an existing user succeeds
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 repo.addUser(new User("U201", "Charlie", "charlie@example.com", "333", "pass", "STUDENT"));
@@ -88,9 +66,6 @@ public class AdminTest {
                 assertEqual("TC-4c isUserActive() returns false after deactivation", false, repo.isUserActive("U201"));
             }
 
-            // -----------------------------------------------------------------
-            // TC-5: Deactivating an unknown ID is handled safely
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 repo.addUser(new User("U201", "Charlie", "charlie@example.com", "333", "pass", "STUDENT"));
@@ -99,9 +74,6 @@ public class AdminTest {
                 assertEqual("TC-5 Deactivating unknown ID safely returns false", false, unknownDeact);
             }
 
-            // -----------------------------------------------------------------
-            // TC-6: A null or blank ID is handled safely
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 assertEqual("TC-6a Deactivating null ID returns false", false, repo.deactivateUser(null));
@@ -111,9 +83,6 @@ public class AdminTest {
                 assertEqual("TC-6e isUserActive(\"\") safely returns false", false, repo.isUserActive(""));
             }
 
-            // -----------------------------------------------------------------
-            // TC-7: A deactivated user remains present in the repository
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 User u = new User("U301", "David", "david@example.com", "444", "pass", "VOLUNTEER");
@@ -127,9 +96,6 @@ public class AdminTest {
                 assertEqual("TC-7c Deactivated user remains in getAllUsers()", 1, repo.getAllUsers().size());
             }
 
-            // -----------------------------------------------------------------
-            // TC-8: A deactivated user cannot log in with correct credentials
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 repo.addUser(new User("U401", "Eve", "eve@example.com", "555", "eve-secret", "STUDENT"));
@@ -144,9 +110,6 @@ public class AdminTest {
                 assertNull("TC-8c No active session retained after rejected login", auth.getCurrentUser());
             }
 
-            // -----------------------------------------------------------------
-            // TC-9: An active user can still log in
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 repo.addUser(new User("U501", "Frank", "frank@example.com", "666", "frank-secret", "STUDENT"));
@@ -158,16 +121,12 @@ public class AdminTest {
                 auth.logout();
             }
 
-            // -----------------------------------------------------------------
-            // TC-10: An unrelated user's authentication remains unaffected
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 repo.addUser(new User("U601", "Grace", "grace@example.com", "777", "grace-pass", "STUDENT"));
                 repo.addUser(new User("U602", "Heidi", "heidi@example.com", "888", "heidi-pass", "STUDENT"));
                 AuthController auth = new AuthController(repo);
 
-                // Deactivate Grace only
                 repo.deactivateUser("U601");
 
                 assertEqual("TC-10a Deactivated user (Grace) cannot log in", false, auth.login("grace@example.com", "grace-pass"));
@@ -176,9 +135,6 @@ public class AdminTest {
                 auth.logout();
             }
 
-            // -----------------------------------------------------------------
-            // TC-11: Repeated deactivation behaves consistently
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 repo.addUser(new User("U701", "Ivan", "ivan@example.com", "999", "ivan-pass", "STUDENT"));
@@ -192,9 +148,6 @@ public class AdminTest {
                 assertEqual("TC-11d User remains deactivated", false, repo.isUserActive("U701"));
             }
 
-            // -----------------------------------------------------------------
-            // TC-12: Admin model viewAllUsers() and deactivateUser()
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 repo.addUser(new User("U801", "Judy", "judy@example.com", "123", "judy-pass", "STUDENT"));
@@ -203,7 +156,6 @@ public class AdminTest {
                 assertEqual("TC-12a Admin adminId getter", "ADM-01", admin.getAdminId());
                 assertEqual("TC-12b Admin getUserRepository() matches", repo, admin.getUserRepository());
 
-                // Test viewAllUsers() does not throw
                 boolean viewSucceeded = true;
                 try {
                     admin.viewAllUsers();
@@ -212,20 +164,15 @@ public class AdminTest {
                 }
                 assertEqual("TC-12c admin.viewAllUsers() executes without error", true, viewSucceeded);
 
-                // Test admin.deactivateUser()
                 admin.deactivateUser("U801");
                 assertEqual("TC-12d User deactivated via Admin model", false, repo.isUserActive("U801"));
 
-                // Test admin with null repo handles safely
                 Admin standaloneAdmin = new Admin();
                 standaloneAdmin.viewAllUsers();
                 standaloneAdmin.deactivateUser("U801");
                 assertEqual("TC-12e Standalone admin handles null repo safely", true, true);
             }
 
-            // -----------------------------------------------------------------
-            // TC-13: MainController Section 4 integration
-            // -----------------------------------------------------------------
             {
                 String previousDbPath = System.getProperty("campuspulse.db.path");
                 String tc13Db = "data/test_admin_tc13_" + System.currentTimeMillis() + ".db";
@@ -260,9 +207,6 @@ public class AdminTest {
                 }
             }
 
-            // -----------------------------------------------------------------
-            // TC-14: User reactivation logic (activateUser)
-            // -----------------------------------------------------------------
             {
                 UserRepository repo = createRepo();
                 repo.addUser(new User("U901", "Kevin", "kevin@example.com", "001", "kevin-pass", "STUDENT"));
@@ -279,13 +223,11 @@ public class AdminTest {
                 assertEqual("TC-14f Reactivated user can log in", true, auth.login("kevin@example.com", "kevin-pass"));
                 auth.logout();
 
-                // Admin model delegation
                 Admin admin = new Admin("ADM9", "Boss", "boss@test.edu", "002", "p", "A-99", repo);
                 repo.deactivateUser("U901");
                 admin.activateUser("U901");
                 assertEqual("TC-14g activateUser via Admin model succeeds", true, repo.isUserActive("U901"));
 
-                // Safe handling of null/unknown
                 assertEqual("TC-14h activateUser(null) returns false", false, repo.activateUser(null));
                 assertEqual("TC-14i activateUser(\"\") returns false", false, repo.activateUser(""));
                 assertEqual("TC-14j activateUser(UNKNOWN) returns false", false, repo.activateUser("UNKNOWN"));
@@ -295,9 +237,6 @@ public class AdminTest {
             cleanupDbs();
         }
 
-        // ---------------------------------------------------------------------
-        // Summary
-        // ---------------------------------------------------------------------
         System.out.println("\n--- Results ---");
         System.out.println("PASSED: " + passed);
         System.out.println("FAILED: " + failed);
@@ -324,10 +263,6 @@ public class AdminTest {
             new File(path + "-journal").delete();
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Assertion helpers
-    // -------------------------------------------------------------------------
 
     private static void assertEqual(String label, Object expected, Object actual) {
         boolean ok = (expected == null && actual == null)

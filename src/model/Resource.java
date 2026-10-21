@@ -7,9 +7,9 @@ public class Resource {
     private String resourceName;
     private String description;
     private String category;
-    private String ownerId;    // userId of the Staff/Admin who owns this resource
+    private String ownerId;
     private int    quantity;
-    private String status;     // Use AppConstants.RESOURCE_STATUS_* values
+    private String status;
 
     public Resource() {}
 

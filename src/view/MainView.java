@@ -15,16 +15,6 @@ import java.awt.*;
 import java.awt.event.HierarchyEvent;
 import java.util.List;
 
-/**
- * MainView.java
- * Minimalist Swing graphical user interface for CampusPulse.
- *
- * Implements role-based dashboards (Student, Volunteer, Staff, Admin)
- * with structured tables, lists, catalog browsing, request tracking,
- * handover verification, and user management.
- *
- * Owner: Ananya Raju (Visual Design & Screen Architecture)
- */
 public class MainView {
 
     private final JFrame frame;
@@ -32,8 +22,7 @@ public class MainView {
     private final CardLayout cardLayout;
     private MainController controller;
 
-    // Minimalist, neutral header colors
-    private static final Color HEADER_BG = new Color(44, 52, 60); // Neutral dark slate
+    private static final Color HEADER_BG = new Color(44, 52, 60);
     private static final Color HEADER_FG = Color.WHITE;
     private static final Color HEADER_SUB = new Color(180, 185, 190);
 
@@ -45,7 +34,6 @@ public class MainView {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ignored) {
-                // Fall back to standard Swing look and feel
             }
 
             frame = new JFrame(AppConstants.APP_NAME);
@@ -63,16 +51,11 @@ public class MainView {
         this.controller = controller;
     }
 
-    // =========================================================================
-    // NAVIGATION & HEADER HELPERS
-    // =========================================================================
-
     private JPanel createHeader(String screenTitle) {
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(HEADER_BG);
         header.setBorder(new EmptyBorder(10, 16, 10, 16));
 
-        // Left title & subtitle
         JPanel titlePanel = new JPanel(new GridLayout(2, 1, 2, 2));
         titlePanel.setOpaque(false);
 
@@ -92,7 +75,6 @@ public class MainView {
 
         header.add(titlePanel, BorderLayout.WEST);
 
-        // Right button panel (Logout)
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         rightPanel.setOpaque(false);
 
@@ -119,10 +101,6 @@ public class MainView {
         table.getTableHeader().setReorderingAllowed(false);
         table.setFillsViewportHeight(true);
     }
-
-    // =========================================================================
-    // 1. LOGIN SCREEN
-    // =========================================================================
 
     public void showLoginScreen() {
         JPanel outer = new JPanel(new GridBagLayout());
@@ -244,10 +222,6 @@ public class MainView {
         }
     }
 
-    // =========================================================================
-    // 2. STUDENT DASHBOARD
-    // =========================================================================
-
     public void showStudentDashboard() {
         JPanel root = new JPanel(new BorderLayout());
         root.add(createHeader(AppConstants.TITLE_STUDENT_DASHBOARD), BorderLayout.NORTH);
@@ -255,13 +229,8 @@ public class MainView {
         JTabbedPane tabs = new JTabbedPane();
         tabs.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
-        // TAB 1: Resource Catalog & Borrowing
         tabs.addTab("Resource Catalog", createStudentCatalogTab());
-
-        // TAB 2: My Borrowed Items & Handover
         tabs.addTab("My Borrowed Items & Handover", createStudentBorrowedTab());
-
-        // TAB 3: Campus Assistance & Emergency Help
         tabs.addTab("Assistance & Emergencies", createStudentAssistanceTab());
 
         root.add(tabs, BorderLayout.CENTER);
@@ -273,7 +242,6 @@ public class MainView {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // Search bar
         JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         JTextField searchField = new JTextField(18);
         JComboBox<String> categoryCombo = new JComboBox<>(new String[]{
@@ -293,7 +261,6 @@ public class MainView {
 
         panel.add(filterBar, BorderLayout.NORTH);
 
-        // Table
         String[] cols = {"Resource ID", "Name", "Category", "Available Qty", "Status", "Owner ID"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override
@@ -343,7 +310,6 @@ public class MainView {
 
         panel.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // Bottom Action Panel
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton borrowBtn = new JButton("Request to Borrow Selected Item");
         borrowBtn.setFocusPainted(false);
@@ -461,7 +427,6 @@ public class MainView {
 
         refreshBtn.addActionListener(e -> refreshBorrowed.run());
 
-        // Automatically refresh when this tab is selected/shown
         panel.addHierarchyListener(e -> {
             if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && panel.isShowing()) {
                 refreshBorrowed.run();
@@ -470,7 +435,6 @@ public class MainView {
 
         panel.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // Bottom action controls: Handover Verify + Return / Cancel
         JPanel bottom = new JPanel(new GridLayout(2, 1, 6, 6));
 
         JPanel handoverPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
@@ -479,7 +443,6 @@ public class MainView {
         JTextField codeField = new JTextField(8);
         JButton verifyCodeBtn = new JButton("Verify Handover Code");
 
-        // Selecting a row in the table automatically fills the Request ID
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 int row = table.getSelectedRow();
@@ -613,7 +576,6 @@ public class MainView {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // Form
         JPanel form = new JPanel(new GridBagLayout());
         form.setBorder(BorderFactory.createTitledBorder("Create New Assistance or Emergency Request"));
         GridBagConstraints gbc = new GridBagConstraints();
@@ -649,7 +611,6 @@ public class MainView {
 
         panel.add(form, BorderLayout.NORTH);
 
-        // Requests Table
         String[] cols = {"Request ID", "Type", "Description", "Required Skill", "Volunteer Assigned", "Status", "Created At"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override
@@ -724,10 +685,6 @@ public class MainView {
         return panel;
     }
 
-    // =========================================================================
-    // 3. VOLUNTEER DASHBOARD
-    // =========================================================================
-
     public void showVolunteerDashboard() {
         JPanel root = new JPanel(new BorderLayout());
 
@@ -736,7 +693,6 @@ public class MainView {
                 ? controller.getVolunteerByUserId(currentUser.getUserId())
                 : null;
 
-        // Top Status Bar: Availability status + current skills
         JPanel statusBanner = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 6));
         statusBanner.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 225)));
 
@@ -764,7 +720,6 @@ public class MainView {
         statusBanner.add(Box.createHorizontalStrut(20));
         statusBanner.add(skillsLabel);
 
-        // Combine header with status banner in North section
         JPanel topContainer = new JPanel(new BorderLayout());
         topContainer.add(createHeader(AppConstants.TITLE_VOLUNTEER_DASHBOARD), BorderLayout.NORTH);
         topContainer.add(statusBanner, BorderLayout.SOUTH);
@@ -773,13 +728,8 @@ public class MainView {
         JTabbedPane tabs = new JTabbedPane();
         tabs.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
-        // TAB 1: Assigned Tasks
         tabs.addTab("Assigned Tasks", createVolunteerAssignedTab(vol));
-
-        // TAB 2: Open Requests Queue
         tabs.addTab("Open Requests Queue", createVolunteerQueueTab(vol));
-
-        // TAB 3: Volunteer Skills Profile
         tabs.addTab("Skills & Profile", createVolunteerSkillsTab(vol, skillsLabel));
 
         root.add(tabs, BorderLayout.CENTER);
@@ -949,10 +899,6 @@ public class MainView {
         return panel;
     }
 
-    // =========================================================================
-    // 4. STAFF DASHBOARD
-    // =========================================================================
-
     public void showStaffDashboard() {
         JPanel root = new JPanel(new BorderLayout());
         root.add(createHeader(AppConstants.TITLE_STAFF_DASHBOARD), BorderLayout.NORTH);
@@ -960,13 +906,8 @@ public class MainView {
         JTabbedPane tabs = new JTabbedPane();
         tabs.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
-        // TAB 1: Resource Management (Inventory)
         tabs.addTab("Resource Inventory", createStaffInventoryTab());
-
-        // TAB 2: Borrow Approvals & Handover Codes
         tabs.addTab("Borrow Requests & Handovers", createStaffHandoversTab());
-
-        // TAB 3: Campus Activity
         tabs.addTab("Campus Activity", createStaffActivityTab());
 
         root.add(tabs, BorderLayout.CENTER);
@@ -1195,10 +1136,6 @@ public class MainView {
         return panel;
     }
 
-    // =========================================================================
-    // 5. ADMIN PANEL
-    // =========================================================================
-
     public void showAdminPanel() {
         JPanel root = new JPanel(new BorderLayout());
         root.add(createHeader(AppConstants.TITLE_ADMIN_PANEL), BorderLayout.NORTH);
@@ -1206,13 +1143,8 @@ public class MainView {
         JTabbedPane tabs = new JTabbedPane();
         tabs.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
-        // TAB 1: User Management (SQLite Persisted)
         tabs.addTab("User Management", createAdminUserManagementTab());
-
-        // TAB 2: System Statistics (List View - Minimalist)
         tabs.addTab("System Statistics", createAdminStatsTab());
-
-        // TAB 3: Global System Oversight
         tabs.addTab("System Oversight", createAdminOversightTab());
 
         root.add(tabs, BorderLayout.CENTER);
@@ -1224,7 +1156,6 @@ public class MainView {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // Filter Bar
         JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         JComboBox<String> roleFilter = new JComboBox<>(new String[]{"ALL ROLES", "STUDENT", "STAFF", "VOLUNTEER", "ADMIN"});
         JButton refreshBtn = new JButton("Refresh Users");
@@ -1235,7 +1166,6 @@ public class MainView {
 
         panel.add(filterBar, BorderLayout.NORTH);
 
-        // Table
         String[] cols = {"User ID", "Name", "Email", "Phone", "Role", "Active Status"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override
@@ -1270,7 +1200,6 @@ public class MainView {
 
         panel.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // Actions: Activate & Deactivate User
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton activateBtn = new JButton("Activate Selected User");
         activateBtn.setFocusPainted(false);
@@ -1352,9 +1281,6 @@ public class MainView {
         return panel;
     }
 
-    /**
-     * Minimalist List View for System Statistics (replaces card-based layout).
-     */
     private JPanel createAdminStatsTab() {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -1478,10 +1404,6 @@ public class MainView {
         return panel;
     }
 
-    // =========================================================================
-    // 6. RESOURCE CATALOG SCREEN (SHARED)
-    // =========================================================================
-
     public void showResourceCatalog() {
         JPanel root = new JPanel(new BorderLayout());
         root.add(createHeader(AppConstants.TITLE_RESOURCE_CATALOG), BorderLayout.NORTH);
@@ -1491,10 +1413,6 @@ public class MainView {
         cardLayout.show(mainPanel, "RESOURCE_CATALOG");
     }
 
-    // =========================================================================
-    // 7. REQUEST LIST SCREEN (SHARED)
-    // =========================================================================
-
     public void showRequestList() {
         JPanel root = new JPanel(new BorderLayout());
         root.add(createHeader(AppConstants.TITLE_REQUEST_LIST), BorderLayout.NORTH);
@@ -1503,10 +1421,6 @@ public class MainView {
         mainPanel.add(root, "REQUEST_LIST");
         cardLayout.show(mainPanel, "REQUEST_LIST");
     }
-
-    // =========================================================================
-    // DIALOGS
-    // =========================================================================
 
     public void showMessage(String message) {
         if (!GraphicsEnvironment.isHeadless() && frame != null) {
