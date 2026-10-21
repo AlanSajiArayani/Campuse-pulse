@@ -1,5 +1,5 @@
 package model;
-
+import util.AppConstants;
 /**
  * Student.java
  * Represents a student user of CampusPulse.
@@ -9,6 +9,7 @@ package model;
  *
  * SHARED MODEL – Do NOT add fields that already exist in User.
  */
+
 public class Student extends User {
 
     // -------------------------------------------------------------------------
@@ -30,7 +31,7 @@ public class Student extends User {
     /** Full constructor. */
     public Student(String userId, String name, String email, String phone,
                    String password, String studentId, String department, int year) {
-        super(userId, name, email, phone, password, "STUDENT");
+        super(userId, name, email, phone, password,AppConstants.ROLE_STUDENT );
         this.studentId  = studentId;
         this.department = department;
         this.year       = year;

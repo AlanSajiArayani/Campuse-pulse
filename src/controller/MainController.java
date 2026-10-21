@@ -229,6 +229,11 @@ public class MainController {
      * TODO [Alan Saji]   – Wire session restoration on restart if needed
      */
     public void start() {
+        if (view == null) {
+            System.err.println("[MainController] Error: MainView is not initialized.");
+            return;
+        }
+
         // TODO [Ananya Raju] – Implement
         view.showLoginScreen();
     }
