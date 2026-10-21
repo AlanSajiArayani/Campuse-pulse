@@ -1,5 +1,5 @@
 package model;
-
+import util.AppConstants;
 /**
  * Staff.java
  * Represents a staff member user of CampusPulse.
@@ -30,7 +30,7 @@ public class Staff extends User {
     /** Full constructor. */
     public Staff(String userId, String name, String email, String phone,
                  String password, String staffId, String department) {
-        super(userId, name, email, phone, password, "STAFF");
+        super(userId, name, email, phone, password,AppConstants.ROLE_STAFF );
         this.staffId    = staffId;
         this.department = department;
     }

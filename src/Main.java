@@ -16,7 +16,8 @@ public class Main {
         MainView       view       = new MainView();
         MainController controller = new MainController(view);
 
-        // Launch the application
+        view.setController(controller);
+       // Launch the application
         controller.start();
     }
 }
