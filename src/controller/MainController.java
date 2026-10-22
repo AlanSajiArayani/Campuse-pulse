@@ -41,6 +41,16 @@ public class MainController {
     }
 
     private void initializeSampleData() {
+        if (userRepository.getAllUsers().isEmpty()) {
+            userRepository.addUser(new User("U001", "Test Student", "st@ex.com", "555-0101", "psw", AppConstants.ROLE_STUDENT));
+            userRepository.addUser(new User("U002", "Test Admin", "ad@ex.com", "555-0102", "psw", AppConstants.ROLE_ADMIN));
+            userRepository.addUser(new User("U003", "Test Volunteer", "vol@ex.com", "555-0103", "psw", AppConstants.ROLE_VOLUNTEER));
+            userRepository.addUser(new User("U004", "Test Staff", "sf@ex.com", "555-0104", "psw", AppConstants.ROLE_STAFF));
+            userRepository.addUser(new User("U005", "Volunteer 2", "vl@ex.com", "555-0105", "psw", AppConstants.ROLE_VOLUNTEER));
+            userRepository.addUser(new User("U006", "Staff 2", "stf@ex.com", "555-0106", "psw", AppConstants.ROLE_STAFF));
+            userRepository.deactivateUser("U006");
+        }
+
         if (resourceService.getAllResources().isEmpty()) {
             resourceService.addResource(new Resource(
                 "RES-001", "Scientific Calculator", "Casio fx-991EX ClassWiz",
